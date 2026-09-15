@@ -13,6 +13,8 @@ use StoreYar\Shared\Application\Contracts\Messaging\InboxStore;
 use StoreYar\Shared\Application\Contracts\Messaging\OutboxStore;
 use StoreYar\Shared\Infrastructure\Messaging\DatabaseInboxStore;
 use StoreYar\Shared\Infrastructure\Messaging\DatabaseOutboxStore;
+use StoreYar\Shared\Application\Contracts\Idempotency\IdempotencyStore;
+use StoreYar\Shared\Infrastructure\Idempotency\DatabaseIdempotencyStore;
 
 final class SharedServiceProvider extends ServiceProvider
 {
@@ -36,6 +38,11 @@ final class SharedServiceProvider extends ServiceProvider
         $this->app->scoped(
             InboxStore::class,
             DatabaseInboxStore::class,
+        );
+
+        $this->app->scoped(
+            IdempotencyStore::class,
+            DatabaseIdempotencyStore::class,
         );
     }
 }
