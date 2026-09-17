@@ -24,11 +24,11 @@ final class ArchitectureBaselineTest extends TestCase
 
         foreach ($modules as $module) {
             foreach ([
-                         'Domain',
-                         'Application',
-                         'Infrastructure',
-                         'Presentation',
-                     ] as $layer) {
+                'Domain',
+                'Application',
+                'Infrastructure',
+                'Presentation',
+            ] as $layer) {
                 $this->assertDirectoryExists(
                     $modulesPath . '/' . $module . '/' . $layer,
                     sprintf(
@@ -61,6 +61,25 @@ final class ArchitectureBaselineTest extends TestCase
             [],
             $violations,
             "Shared Domain contains forbidden framework dependencies:\n"
+            . implode("\n", $violations),
+        );
+    }
+
+    public function test_shared_domain_does_not_depend_on_modules(): void
+    {
+        $path = dirname(__DIR__, 2) . '/app/Shared/Domain';
+
+        $violations = $this->findNamespaceViolations(
+            path: $path,
+            forbiddenNamespaces: [
+                'StoreYar\\Modules\\',
+            ],
+        );
+
+        $this->assertSame(
+            [],
+            $violations,
+            "Shared Domain must not depend on Modules:\n"
             . implode("\n", $violations),
         );
     }
@@ -126,6 +145,30 @@ final class ArchitectureBaselineTest extends TestCase
             [],
             $violations,
             "Domain contains forbidden persistence dependencies:\n"
+            . implode("\n", $violations),
+        );
+    }
+
+    public function test_shared_application_does_not_depend_on_database(): void
+    {
+        $path = dirname(__DIR__, 2) . '/app/Shared/Application';
+
+        $forbiddenNamespaces = [
+            'Illuminate\\Database\\',
+            'Illuminate\\Support\\Facades\\DB',
+            'Illuminate\\Support\\Facades\\Schema',
+            'Illuminate\\Database\\Eloquent\\',
+        ];
+
+        $violations = $this->findNamespaceViolations(
+            path: $path,
+            forbiddenNamespaces: $forbiddenNamespaces,
+        );
+
+        $this->assertSame(
+            [],
+            $violations,
+            "Shared Application contains forbidden persistence dependencies:\n"
             . implode("\n", $violations),
         );
     }
