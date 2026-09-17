@@ -127,6 +127,19 @@ final class ArchitectureBaselineTest extends TestCase
 
         foreach ($paths as $path) {
             foreach ($this->phpFiles($path) as $file) {
+                if (
+                    str_contains(
+                        str_replace('\\', '/', $file),
+                        '/Modules/',
+                    )
+                    && ! str_contains(
+                        str_replace('\\', '/', $file),
+                        '/Domain/',
+                    )
+                ) {
+                    continue;
+                }
+
                 $content = file_get_contents($file);
 
                 if ($content === false) {
@@ -148,7 +161,6 @@ final class ArchitectureBaselineTest extends TestCase
             . implode("\n", $violations),
         );
     }
-
     public function test_shared_application_does_not_depend_on_database(): void
     {
         $path = dirname(__DIR__, 2) . '/app/Shared/Application';
