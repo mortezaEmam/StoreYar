@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: storeyar_testing
+          MYSQL_USER: storeyar
+          MYSQL_PASSWORD: storeyar
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: bcmath, mbstring, pdo, pdo_mysql
+          coverage: none
+
+      - name: Validate Composer
+        run: composer validate --strict
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Prepare environment
+        run: cp .env.testing .env
+
+      - name: Generate application key
+        run: php artisan key:generate --force
+
+      - name: Configure test database
+        run: |
+          echo "DB_CONNECTION=mysql" >> .env
+          echo "DB_HOST=127.0.0.1" >> .env
+          echo "DB_PORT=3306" >> .env
+          echo "DB_DATABASE=storeyar_testing" >> .env
+          echo "DB_USERNAME=storeyar" >> .env
+          echo "DB_PASSWORD=storeyar" >> .env
+
+      - name: Run migrations
+        run: php artisan migrate --force
+
+      - name: PHP syntax check
+        run: find app tests -type f -name "*.php" -print0 | xargs -0 -n1 php -l
+
+      - name: Architecture tests
+        run: php artisan test tests/Architecture
+
+      - name: Security tests
+        run: php artisan test tests/Security
+
+      - name: Full test suite
+        run: php artisan test
