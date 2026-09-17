@@ -8,23 +8,72 @@
         <testsuite name="Unit">
             <directory>tests/Unit</directory>
         </testsuite>
+
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
+
+        <testsuite name="Contract">
+            <directory>tests/Contract</directory>
+        </testsuite>
+
+        <testsuite name="Architecture">
+            <directory>tests/Architecture</directory>
+        </testsuite>
+
+        <testsuite name="Security">
+            <directory>tests/Security</directory>
+        </testsuite>
+
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+
+        <testsuite name="E2E">
+            <directory>tests/E2E</directory>
+        </testsuite>
+
+        <testsuite name="Performance">
+            <directory>tests/Performance</directory>
+        </testsuite>
+
+        <testsuite name="Load">
+            <directory>tests/Load</directory>
+        </testsuite>
+
+        <testsuite name="Stress">
+            <directory>tests/Stress</directory>
+        </testsuite>
+
+        <testsuite name="Chaos">
+            <directory>tests/Chaos</directory>
+        </testsuite>
+
+        <testsuite name="Recovery">
+            <directory>tests/Recovery</directory>
+        </testsuite>
+
+        <testsuite name="Migration">
+            <directory>tests/Migration</directory>
+        </testsuite>
+
+        <testsuite name="DataIntegrity">
+            <directory>tests/DataIntegrity</directory>
+        </testsuite>
     </testsuites>
+
     <source>
         <include>
             <directory>app</directory>
         </include>
     </source>
+
     <php>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
-<!--        <env name="DB_CONNECTION" value="sqlite"/>-->
-<!--        <env name="DB_DATABASE" value=":memory:"/>-->
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
