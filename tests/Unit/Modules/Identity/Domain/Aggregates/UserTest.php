@@ -271,4 +271,33 @@ final class UserTest extends TestCase
         $this->assertInstanceOf(UserActivated::class, $events[0]);
         $this->assertSame($user->id(), $events[0]->aggregateId());
     }
+
+
+
+    public function test_it_can_be_reconstituted_without_recording_events(): void
+    {
+        $id = UserId::generate();
+        $createdAt = new DateTimeImmutable('2026-01-01 10:00:00');
+        $updatedAt = new DateTimeImmutable('2026-01-02 10:00:00');
+
+        $user = User::reconstitute(
+            id: $id,
+            email: 'user@example.com',
+            name: 'John Doe',
+            createdAt: $createdAt,
+            updatedAt: $updatedAt,
+            status: UserStatus::SUSPENDED,
+            version: 7,
+        );
+
+        $this->assertSame((string) $id, $user->id());
+        $this->assertSame($id->value(), $user->userId()->value());
+        $this->assertSame('user@example.com', $user->email());
+        $this->assertSame('John Doe', $user->name());
+        $this->assertSame(UserStatus::SUSPENDED, $user->status());
+        $this->assertSame($createdAt, $user->createdAt());
+        $this->assertSame($updatedAt, $user->updatedAt());
+        $this->assertSame(7, $user->version());
+        $this->assertSame([], $user->domainEvents());
+    }
 }

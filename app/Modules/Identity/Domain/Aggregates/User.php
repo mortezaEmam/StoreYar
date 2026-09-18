@@ -60,6 +60,42 @@ final class User extends AggregateRoot
         return $user;
     }
 
+
+
+
+    public static function reconstitute(
+        UserId $id,
+        string $email,
+        string $name,
+        DateTimeImmutable $createdAt,
+        DateTimeImmutable $updatedAt,
+        UserStatus $status,
+        int $version,
+    ): self {
+        self::assertRequired($email, 'User email');
+        self::assertRequired($name, 'User name');
+
+        if ($version < 0) {
+            throw new \InvalidArgumentException(
+                'User version cannot be negative.',
+            );
+        }
+
+        $user = new self(
+            userId: $id,
+            email: $email,
+            name: $name,
+            createdAt: $createdAt,
+            updatedAt: $updatedAt,
+            status: $status,
+        );
+
+        $user->version = $version;
+
+        return $user;
+    }
+
+
     public function suspend(DateTimeImmutable $now): void
     {
         if ($this->status !== UserStatus::ACTIVE) {

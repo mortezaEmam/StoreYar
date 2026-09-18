@@ -24,5 +24,7 @@ final class IdentityUserModel extends Model
 
     protected $casts = [
         'version' => 'integer',
+        'created_at' => 'immutable_datetime',
+        'updated_at' => 'immutable_datetime',
     ];
 }
