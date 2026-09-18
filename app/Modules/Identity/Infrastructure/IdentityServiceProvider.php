@@ -15,6 +15,8 @@ use StoreYar\Shared\Application\Bus\Command\CommandHandlerRegistry;
 use StoreYar\Modules\Identity\Application\Queries\GetUserById\GetUserByIdHandler;
 use StoreYar\Modules\Identity\Application\Queries\GetUserById\GetUserByIdQuery;
 use StoreYar\Shared\Application\Bus\Query\QueryHandlerRegistry;
+use StoreYar\Modules\Identity\Domain\Contracts\UserCredentialRepository;
+use StoreYar\Modules\Identity\Infrastructure\Persistence\Eloquent\EloquentUserCredentialRepository;
 final class IdentityServiceProvider extends ServiceProvider
 {
     public function register(): void
@@ -49,6 +51,12 @@ final class IdentityServiceProvider extends ServiceProvider
                     GetUserByIdHandler::class,
                 );
             },
+        );
+
+
+        $this->app->singleton(
+            UserCredentialRepository::class,
+            EloquentUserCredentialRepository::class,
         );
     }
 }
