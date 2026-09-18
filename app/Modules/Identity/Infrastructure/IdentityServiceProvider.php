@@ -12,6 +12,9 @@ use StoreYar\Modules\Identity\Infrastructure\Persistence\Eloquent\EloquentUserRe
 use StoreYar\Modules\Identity\Application\Commands\CreateUser\CreateUserCommand;
 use StoreYar\Modules\Identity\Application\Commands\CreateUser\CreateUserHandler;
 use StoreYar\Shared\Application\Bus\Command\CommandHandlerRegistry;
+use StoreYar\Modules\Identity\Application\Queries\GetUserById\GetUserByIdHandler;
+use StoreYar\Modules\Identity\Application\Queries\GetUserById\GetUserByIdQuery;
+use StoreYar\Shared\Application\Bus\Query\QueryHandlerRegistry;
 final class IdentityServiceProvider extends ServiceProvider
 {
     public function register(): void
@@ -34,6 +37,16 @@ final class IdentityServiceProvider extends ServiceProvider
                 $registry->register(
                     CreateUserCommand::class,
                     CreateUserHandler::class,
+                );
+            },
+        );
+
+        $this->app->afterResolving(
+            QueryHandlerRegistry::class,
+            static function (QueryHandlerRegistry $registry): void {
+                $registry->register(
+                    GetUserByIdQuery::class,
+                    GetUserByIdHandler::class,
                 );
             },
         );
