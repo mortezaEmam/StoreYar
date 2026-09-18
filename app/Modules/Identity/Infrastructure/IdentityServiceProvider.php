@@ -9,6 +9,9 @@ use StoreYar\Modules\Identity\Domain\Contracts\PasswordHasher;
 use StoreYar\Modules\Identity\Domain\Contracts\UserRepository;
 use StoreYar\Modules\Identity\Infrastructure\Security\LaravelPasswordHasher;
 use StoreYar\Modules\Identity\Infrastructure\Persistence\Eloquent\EloquentUserRepository;
+use StoreYar\Modules\Identity\Application\Commands\CreateUser\CreateUserCommand;
+use StoreYar\Modules\Identity\Application\Commands\CreateUser\CreateUserHandler;
+use StoreYar\Shared\Application\Bus\Command\CommandHandlerRegistry;
 final class IdentityServiceProvider extends ServiceProvider
 {
     public function register(): void
@@ -22,6 +25,17 @@ final class IdentityServiceProvider extends ServiceProvider
         $this->app->singleton(
             UserRepository::class,
             EloquentUserRepository::class,
+        );
+
+
+        $this->app->afterResolving(
+            CommandHandlerRegistry::class,
+            static function (CommandHandlerRegistry $registry): void {
+                $registry->register(
+                    CreateUserCommand::class,
+                    CreateUserHandler::class,
+                );
+            },
         );
     }
 }

@@ -19,6 +19,8 @@ use StoreYar\Shared\Application\Bus\Query\QueryBus;
 use StoreYar\Shared\Application\Bus\Query\QueryHandlerMap;
 use StoreYar\Shared\Application\Bus\Query\QueryHandlerRegistry;
 use StoreYar\Shared\Application\Bus\Query\QueryHandlerResolver;
+use StoreYar\Shared\Domain\Contracts\Clock;
+use StoreYar\Shared\Infrastructure\Clock\SystemClock;
 
 final class SharedServiceProvider extends ServiceProvider
 {
@@ -66,6 +68,13 @@ final class SharedServiceProvider extends ServiceProvider
         $this->app->singleton(
             QueryBus::class,
             LaravelQueryBus::class
+        );
+
+
+
+        $this->app->singleton(
+            Clock::class,
+            SystemClock::class,
         );
     }
 }
