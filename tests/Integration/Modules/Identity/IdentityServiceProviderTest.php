@@ -8,6 +8,8 @@ use StoreYar\Modules\Identity\Application\Commands\AuthenticateUser\Authenticate
 use StoreYar\Modules\Identity\Application\Commands\AuthenticateUser\AuthenticateUserHandler;
 use StoreYar\Shared\Application\Bus\Command\CommandHandlerRegistry;
 use Tests\TestCase;
+use StoreYar\Modules\Identity\Application\Commands\RevokeSession\RevokeSessionCommand;
+use StoreYar\Modules\Identity\Application\Commands\RevokeSession\RevokeSessionHandler;
 
 final class IdentityServiceProviderTest extends TestCase
 {
@@ -35,6 +37,17 @@ final class IdentityServiceProviderTest extends TestCase
         );
     }
 
+    public function test_revoke_session_handler_is_registered(): void
+    {
+        $registry = app(CommandHandlerRegistry::class);
+
+        self::assertSame(
+            RevokeSessionHandler::class,
+            $registry
+                ->map()
+                ->handlerFor(RevokeSessionCommand::class),
+        );
+    }
 
     public function test_session_token_generator_is_bound_to_laravel_implementation(): void
     {

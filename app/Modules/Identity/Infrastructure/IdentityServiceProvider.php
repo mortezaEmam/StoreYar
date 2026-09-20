@@ -23,6 +23,8 @@ use StoreYar\Modules\Identity\Domain\Contracts\SessionRepository;
 use StoreYar\Modules\Identity\Infrastructure\Persistence\Eloquent\EloquentSessionRepository;
 use StoreYar\Modules\Identity\Domain\Contracts\SessionTokenGenerator;
 use StoreYar\Modules\Identity\Infrastructure\Security\LaravelSessionTokenGenerator;
+use StoreYar\Modules\Identity\Application\Commands\RevokeSession\RevokeSessionCommand;
+use StoreYar\Modules\Identity\Application\Commands\RevokeSession\RevokeSessionHandler;
 final class IdentityServiceProvider extends ServiceProvider
 {
     public function register(): void
@@ -69,6 +71,11 @@ final class IdentityServiceProvider extends ServiceProvider
         $this->app->make(CommandHandlerRegistry::class)->register(
             AuthenticateUserCommand::class,
             AuthenticateUserHandler::class,
+        );
+
+        $this->app->make(CommandHandlerRegistry::class)->register(
+            RevokeSessionCommand::class,
+            RevokeSessionHandler::class,
         );
 
 
