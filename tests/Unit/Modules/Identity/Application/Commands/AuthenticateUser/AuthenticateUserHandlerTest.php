@@ -14,6 +14,10 @@ use StoreYar\Modules\Identity\Domain\Contracts\UserRepository;
 use StoreYar\Modules\Identity\Domain\Enums\UserStatus;
 use StoreYar\Modules\Identity\Domain\ValueObjects\UserId;
 use StoreYar\Shared\Application\Bus\Command\Command;
+use StoreYar\Modules\Identity\Domain\Contracts\SessionRepository;
+use StoreYar\Modules\Identity\Domain\Contracts\SessionTokenGenerator;
+use StoreYar\Modules\Identity\Domain\ValueObjects\SessionId;
+use StoreYar\Shared\Domain\Contracts\Clock;
 use Tests\TestCase;
 
 final class AuthenticateUserHandlerTest extends TestCase
@@ -36,10 +40,17 @@ final class AuthenticateUserHandlerTest extends TestCase
         $credentials = new FakeUserCredentialRepository('stored-hash');
         $hasher = new FakePasswordHasher(true);
 
+        $sessionRepository = new FakeSessionRepository();
+        $tokenGenerator = new FakeSessionTokenGenerator();
+        $clock = new FakeClock();
+
         $handler = new AuthenticateUserHandler(
             users: $users,
             credentials: $credentials,
             passwordHasher: $hasher,
+            sessions: $sessionRepository,
+            tokenGenerator: $tokenGenerator,
+            clock: $clock,
         );
 
         $result = $handler->handle(
@@ -68,16 +79,45 @@ final class AuthenticateUserHandlerTest extends TestCase
             'stored-hash',
             $hasher->receivedHash,
         );
+
+        self::assertSame(
+            'plain-session-token',
+            $result->token,
+        );
+
+        self::assertNotNull(
+            $sessionRepository->sessionId,
+        );
+
+        self::assertSame(
+            $user->id(),
+            $sessionRepository->userId,
+        );
+
+        self::assertSame(
+            'hashed-session-token',
+            $sessionRepository->tokenHash,
+        );
+
+        self::assertSame(
+            'plain-session-token',
+            $tokenGenerator->generatedToken,
+        );
     }
 
     public function test_it_rejects_invalid_password(): void
     {
         $user = $this->createUser();
 
+        $hasher = new FakePasswordHasher(false);
+
         $handler = new AuthenticateUserHandler(
             users: new FakeUserRepository($user),
             credentials: new FakeUserCredentialRepository('stored-hash'),
-            passwordHasher: new FakePasswordHasher(false),
+            passwordHasher: $hasher,
+            sessions: new FakeSessionRepository(),
+            tokenGenerator: new FakeSessionTokenGenerator(),
+            clock: new FakeClock(),
         );
 
         $this->expectException(\InvalidArgumentException::class);
@@ -93,10 +133,14 @@ final class AuthenticateUserHandlerTest extends TestCase
 
     public function test_it_rejects_unknown_user(): void
     {
+        $hasher = new FakePasswordHasher(true);
         $handler = new AuthenticateUserHandler(
             users: new FakeUserRepository(null),
             credentials: new FakeUserCredentialRepository('stored-hash'),
-            passwordHasher: new FakePasswordHasher(true),
+            passwordHasher: $hasher,
+            sessions: new FakeSessionRepository(),
+            tokenGenerator: new FakeSessionTokenGenerator(),
+            clock: new FakeClock(),
         );
 
         $this->expectException(\InvalidArgumentException::class);
@@ -112,10 +156,14 @@ final class AuthenticateUserHandlerTest extends TestCase
 
     public function test_it_rejects_invalid_command(): void
     {
+        $hasher = new FakePasswordHasher(true);
         $handler = new AuthenticateUserHandler(
             users: new FakeUserRepository(null),
-            credentials: new FakeUserCredentialRepository(null),
-            passwordHasher: new FakePasswordHasher(false),
+            credentials: new FakeUserCredentialRepository('stored-hash'),
+            passwordHasher: $hasher,
+            sessions: new FakeSessionRepository(),
+            tokenGenerator: new FakeSessionTokenGenerator(),
+            clock: new FakeClock(),
         );
 
         $this->expectException(\InvalidArgumentException::class);
@@ -153,11 +201,14 @@ final class AuthenticateUserHandlerTest extends TestCase
             status: UserStatus::SUSPENDED,
             version: 0,
         );
-
+        $hasher = new FakePasswordHasher(true);
         $handler = new AuthenticateUserHandler(
             users: new FakeUserRepository($user),
             credentials: new FakeUserCredentialRepository('stored-hash'),
-            passwordHasher: new FakePasswordHasher(true),
+            passwordHasher: $hasher,
+            sessions: new FakeSessionRepository(),
+            tokenGenerator: new FakeSessionTokenGenerator(),
+            clock: new FakeClock(),
         );
 
         $this->expectException(\InvalidArgumentException::class);
@@ -235,6 +286,65 @@ final class FakePasswordHasher implements PasswordHasher
         $this->receivedHash = $hashedPassword;
 
         return $this->verificationResult;
+    }
+}
+
+
+final class FakeSessionRepository implements SessionRepository
+{
+    public ?SessionId $sessionId = null;
+
+    public ?string $userId = null;
+
+    public ?string $tokenHash = null;
+
+    public ?\DateTimeImmutable $expiresAt = null;
+
+    public function create(
+        SessionId $sessionId,
+        string $userId,
+        string $tokenHash,
+        \DateTimeImmutable $expiresAt,
+    ): void {
+        $this->sessionId = $sessionId;
+        $this->userId = $userId;
+        $this->tokenHash = $tokenHash;
+        $this->expiresAt = $expiresAt;
+    }
+
+    public function revoke(SessionId $sessionId): void {}
+
+    public function findActiveByTokenHash(
+        string $tokenHash,
+        \DateTimeImmutable $now,
+    ): ?SessionId {
+        return null;
+    }
+}
+
+final class FakeSessionTokenGenerator implements SessionTokenGenerator
+{
+    public string $generatedToken = 'plain-session-token';
+
+    public function generate(): string
+    {
+        return $this->generatedToken;
+    }
+
+    public function hash(string $plainToken): string
+    {
+        return 'hashed-session-token';
+    }
+}
+
+final class FakeClock implements Clock
+{
+    public function now(): \DateTimeImmutable
+    {
+        return new \DateTimeImmutable(
+            '2026-01-01 12:00:00',
+            new \DateTimeZone('UTC'),
+        );
     }
 }
 

@@ -21,6 +21,8 @@ use StoreYar\Modules\Identity\Application\Commands\AuthenticateUser\Authenticate
 use StoreYar\Modules\Identity\Application\Commands\AuthenticateUser\AuthenticateUserHandler;
 use StoreYar\Modules\Identity\Domain\Contracts\SessionRepository;
 use StoreYar\Modules\Identity\Infrastructure\Persistence\Eloquent\EloquentSessionRepository;
+use StoreYar\Modules\Identity\Domain\Contracts\SessionTokenGenerator;
+use StoreYar\Modules\Identity\Infrastructure\Security\LaravelSessionTokenGenerator;
 final class IdentityServiceProvider extends ServiceProvider
 {
     public function register(): void
@@ -73,6 +75,12 @@ final class IdentityServiceProvider extends ServiceProvider
         $this->app->singleton(
             SessionRepository::class,
             EloquentSessionRepository::class,
+        );
+
+
+        $this->app->singleton(
+            SessionTokenGenerator::class,
+            LaravelSessionTokenGenerator::class,
         );
     }
 }

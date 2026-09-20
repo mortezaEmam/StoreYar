@@ -34,4 +34,17 @@ final class IdentityServiceProviderTest extends TestCase
             $repository,
         );
     }
+
+
+    public function test_session_token_generator_is_bound_to_laravel_implementation(): void
+    {
+        $generator = app(
+            \StoreYar\Modules\Identity\Domain\Contracts\SessionTokenGenerator::class,
+        );
+
+        self::assertInstanceOf(
+            \StoreYar\Modules\Identity\Infrastructure\Security\LaravelSessionTokenGenerator::class,
+            $generator,
+        );
+    }
 }
