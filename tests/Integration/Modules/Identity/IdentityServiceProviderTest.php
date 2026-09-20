@@ -22,4 +22,16 @@ final class IdentityServiceProviderTest extends TestCase
                 ->handlerFor(AuthenticateUserCommand::class),
         );
     }
+
+    public function test_session_repository_is_bound_to_eloquent_implementation(): void
+    {
+        $repository = app(
+            \StoreYar\Modules\Identity\Domain\Contracts\SessionRepository::class,
+        );
+
+        self::assertInstanceOf(
+            \StoreYar\Modules\Identity\Infrastructure\Persistence\Eloquent\EloquentSessionRepository::class,
+            $repository,
+        );
+    }
 }

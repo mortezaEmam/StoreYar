@@ -19,6 +19,8 @@ use StoreYar\Modules\Identity\Domain\Contracts\UserCredentialRepository;
 use StoreYar\Modules\Identity\Infrastructure\Persistence\Eloquent\EloquentUserCredentialRepository;
 use StoreYar\Modules\Identity\Application\Commands\AuthenticateUser\AuthenticateUserCommand;
 use StoreYar\Modules\Identity\Application\Commands\AuthenticateUser\AuthenticateUserHandler;
+use StoreYar\Modules\Identity\Domain\Contracts\SessionRepository;
+use StoreYar\Modules\Identity\Infrastructure\Persistence\Eloquent\EloquentSessionRepository;
 final class IdentityServiceProvider extends ServiceProvider
 {
     public function register(): void
@@ -65,6 +67,12 @@ final class IdentityServiceProvider extends ServiceProvider
         $this->app->make(CommandHandlerRegistry::class)->register(
             AuthenticateUserCommand::class,
             AuthenticateUserHandler::class,
+        );
+
+
+        $this->app->singleton(
+            SessionRepository::class,
+            EloquentSessionRepository::class,
         );
     }
 }

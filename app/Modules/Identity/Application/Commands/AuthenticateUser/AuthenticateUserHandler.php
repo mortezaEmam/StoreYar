@@ -42,7 +42,7 @@ final readonly class AuthenticateUserHandler implements CommandHandler
                 'Invalid credentials.',
             );
         }
-        
+
 
         $passwordHash = $this->credentials->findPasswordHash(
             UserId::fromString($user->id()),
