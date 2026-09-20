@@ -60,4 +60,19 @@ final class IdentityServiceProviderTest extends TestCase
             $generator,
         );
     }
+
+
+    public function test_validate_session_handler_is_registered(): void
+    {
+        $registry = $this->app->make(
+            \StoreYar\Shared\Application\Bus\Query\QueryHandlerRegistry::class,
+        );
+
+        self::assertSame(
+            \StoreYar\Modules\Identity\Application\Queries\ValidateSession\ValidateSessionHandler::class,
+            $registry->map()->handlerFor(
+                \StoreYar\Modules\Identity\Application\Queries\ValidateSession\ValidateSessionQuery::class,
+            ),
+        );
+    }
 }

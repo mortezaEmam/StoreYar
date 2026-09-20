@@ -25,6 +25,8 @@ use StoreYar\Modules\Identity\Domain\Contracts\SessionTokenGenerator;
 use StoreYar\Modules\Identity\Infrastructure\Security\LaravelSessionTokenGenerator;
 use StoreYar\Modules\Identity\Application\Commands\RevokeSession\RevokeSessionCommand;
 use StoreYar\Modules\Identity\Application\Commands\RevokeSession\RevokeSessionHandler;
+use StoreYar\Modules\Identity\Application\Queries\ValidateSession\ValidateSessionHandler;
+use StoreYar\Modules\Identity\Application\Queries\ValidateSession\ValidateSessionQuery;
 final class IdentityServiceProvider extends ServiceProvider
 {
     public function register(): void
@@ -88,6 +90,12 @@ final class IdentityServiceProvider extends ServiceProvider
         $this->app->singleton(
             SessionTokenGenerator::class,
             LaravelSessionTokenGenerator::class,
+        );
+
+
+        $this->app->make(QueryHandlerRegistry::class)->register(
+            ValidateSessionQuery::class,
+            ValidateSessionHandler::class,
         );
     }
 }
