@@ -2,49 +2,47 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Modules\Identity\Application\Commands\RevokeSession;
+namespace Tests\Unit\Modules\Identity\Application\Commands\RevokeAllUserSessions;
 
-use StoreYar\Modules\Identity\Application\Commands\RevokeSession\RevokeSessionCommand;
-use StoreYar\Modules\Identity\Application\Commands\RevokeSession\RevokeSessionHandler;
+use StoreYar\Modules\Identity\Application\Commands\RevokeAllUserSessions\RevokeAllUserSessionsCommand;
+use StoreYar\Modules\Identity\Application\Commands\RevokeAllUserSessions\RevokeAllUserSessionsHandler;
 use StoreYar\Modules\Identity\Domain\Contracts\SessionRepository;
 use StoreYar\Modules\Identity\Domain\ValueObjects\SessionId;
 use StoreYar\Shared\Application\Bus\Command\Command;
 use Tests\TestCase;
 
-final class RevokeSessionHandlerTest extends TestCase
+final class RevokeAllUserSessionsHandlerTest extends TestCase
 {
-    public function test_it_revokes_session(): void
+    public function test_it_revokes_all_sessions_for_user(): void
     {
-        $sessionId = SessionId::generate();
         $repository = new FakeSessionRepository();
 
-        $handler = new RevokeSessionHandler(
+        $handler = new RevokeAllUserSessionsHandler(
             sessions: $repository,
         );
 
         $result = $handler->handle(
-            new RevokeSessionCommand(
-                sessionId: $sessionId,
+            new RevokeAllUserSessionsCommand(
+                userId: '01JSESSIONUSER000000000001',
             ),
         );
 
         self::assertNull($result);
-        self::assertTrue($repository->revoked);
-        self::assertNotNull($repository->revokedSessionId);
-        self::assertTrue(
-            $sessionId->equals($repository->revokedSessionId),
+        self::assertSame(
+            '01JSESSIONUSER000000000001',
+            $repository->revokedUserId,
         );
     }
 
     public function test_it_rejects_invalid_command(): void
     {
-        $handler = new RevokeSessionHandler(
+        $handler = new RevokeAllUserSessionsHandler(
             sessions: new FakeSessionRepository(),
         );
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage(
-            'RevokeSessionHandler received an invalid command.',
+            'RevokeAllUserSessionsHandler received an invalid command.',
         );
 
         $handler->handle(new InvalidCommand());
@@ -53,9 +51,7 @@ final class RevokeSessionHandlerTest extends TestCase
 
 final class FakeSessionRepository implements SessionRepository
 {
-    public bool $revoked = false;
-
-    public ?SessionId $revokedSessionId = null;
+    public ?string $revokedUserId = null;
 
     public function create(
         SessionId $sessionId,
@@ -67,12 +63,11 @@ final class FakeSessionRepository implements SessionRepository
 
     public function revoke(SessionId $sessionId): void
     {
-        $this->revoked = true;
-        $this->revokedSessionId = $sessionId;
     }
 
     public function revokeAllForUser(string $userId): void
     {
+        $this->revokedUserId = $userId;
     }
 
     public function findActiveByTokenHash(

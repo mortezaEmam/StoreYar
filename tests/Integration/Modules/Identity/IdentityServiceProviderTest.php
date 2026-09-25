@@ -10,6 +10,8 @@ use StoreYar\Shared\Application\Bus\Command\CommandHandlerRegistry;
 use Tests\TestCase;
 use StoreYar\Modules\Identity\Application\Commands\RevokeSession\RevokeSessionCommand;
 use StoreYar\Modules\Identity\Application\Commands\RevokeSession\RevokeSessionHandler;
+use StoreYar\Modules\Identity\Application\Commands\RevokeAllUserSessions\RevokeAllUserSessionsCommand;
+use StoreYar\Modules\Identity\Application\Commands\RevokeAllUserSessions\RevokeAllUserSessionsHandler;
 
 final class IdentityServiceProviderTest extends TestCase
 {
@@ -73,6 +75,19 @@ final class IdentityServiceProviderTest extends TestCase
             $registry->map()->handlerFor(
                 \StoreYar\Modules\Identity\Application\Queries\ValidateSession\ValidateSessionQuery::class,
             ),
+        );
+    }
+
+
+    public function test_revoke_all_user_sessions_handler_is_registered(): void
+    {
+        $registry = app(CommandHandlerRegistry::class);
+
+        self::assertSame(
+            RevokeAllUserSessionsHandler::class,
+            $registry
+                ->map()
+                ->handlerFor(RevokeAllUserSessionsCommand::class),
         );
     }
 }

@@ -34,6 +34,19 @@ final class EloquentSessionRepository implements SessionRepository
             ]);
     }
 
+
+
+    public function revokeAllForUser(string $userId): void
+    {
+        IdentitySessionModel::query()
+            ->where('user_id', $userId)
+            ->whereNull('revoked_at')
+            ->update([
+                'revoked_at' => new DateTimeImmutable('now'),
+            ]);
+    }
+
+
     public function findActiveByTokenHash(
         string $tokenHash,
         DateTimeImmutable $now,

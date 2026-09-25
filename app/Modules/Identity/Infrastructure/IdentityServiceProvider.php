@@ -27,6 +27,8 @@ use StoreYar\Modules\Identity\Application\Commands\RevokeSession\RevokeSessionCo
 use StoreYar\Modules\Identity\Application\Commands\RevokeSession\RevokeSessionHandler;
 use StoreYar\Modules\Identity\Application\Queries\ValidateSession\ValidateSessionHandler;
 use StoreYar\Modules\Identity\Application\Queries\ValidateSession\ValidateSessionQuery;
+use StoreYar\Modules\Identity\Application\Commands\RevokeAllUserSessions\RevokeAllUserSessionsCommand;
+use StoreYar\Modules\Identity\Application\Commands\RevokeAllUserSessions\RevokeAllUserSessionsHandler;
 final class IdentityServiceProvider extends ServiceProvider
 {
     public function register(): void
@@ -96,6 +98,12 @@ final class IdentityServiceProvider extends ServiceProvider
         $this->app->make(QueryHandlerRegistry::class)->register(
             ValidateSessionQuery::class,
             ValidateSessionHandler::class,
+        );
+
+
+        $this->app->make(CommandHandlerRegistry::class)->register(
+            RevokeAllUserSessionsCommand::class,
+            RevokeAllUserSessionsHandler::class,
         );
     }
 }

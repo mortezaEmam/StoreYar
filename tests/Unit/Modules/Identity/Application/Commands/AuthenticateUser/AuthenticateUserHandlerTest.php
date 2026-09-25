@@ -314,6 +314,8 @@ final class FakeSessionRepository implements SessionRepository
 
     public function revoke(SessionId $sessionId): void {}
 
+    public function revokeAllForUser(string $userId): void {}
+
     public function findActiveByTokenHash(
         string $tokenHash,
         \DateTimeImmutable $now,
