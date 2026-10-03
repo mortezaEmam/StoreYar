@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace StoreYar\Modules\Identity\Application\Commands\RotateSession;
 
+use Illuminate\Support\Facades\DB;
 use StoreYar\Modules\Identity\Application\Results\SessionRotationResult;
 use StoreYar\Modules\Identity\Domain\Contracts\SessionRepository;
 use StoreYar\Modules\Identity\Domain\Contracts\SessionTokenGenerator;
@@ -54,16 +55,18 @@ final class RotateSessionHandler implements CommandHandler
             expiresAt: $now->modify('+30 days'),
         );
 
-        $this->sessions->create(
-            sessionId: $newSession->sessionId(),
-            userId: $newSession->userId(),
-            tokenHash: $newSession->tokenHash(),
-            expiresAt: $newSession->expiresAt(),
-        );
+        DB::transaction(function () use ($newSession, $currentSession): void {
+            $this->sessions->create(
+                sessionId: $newSession->sessionId(),
+                userId: $newSession->userId(),
+                tokenHash: $newSession->tokenHash(),
+                expiresAt: $newSession->expiresAt(),
+            );
 
-        $this->sessions->revoke(
-            $currentSession->sessionId(),
-        );
+            $this->sessions->revoke(
+                $currentSession->sessionId(),
+            );
+        });
 
         return new SessionRotationResult(
             session: $newSession,
