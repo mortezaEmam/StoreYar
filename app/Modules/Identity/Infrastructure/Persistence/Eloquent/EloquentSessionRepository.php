@@ -7,6 +7,7 @@ namespace StoreYar\Modules\Identity\Infrastructure\Persistence\Eloquent;
 use DateTimeImmutable;
 use StoreYar\Modules\Identity\Domain\Contracts\SessionRepository;
 use StoreYar\Modules\Identity\Domain\ValueObjects\SessionId;
+use StoreYar\Modules\Identity\Domain\Entities\Session;
 
 final class EloquentSessionRepository implements SessionRepository
 {
@@ -44,6 +45,26 @@ final class EloquentSessionRepository implements SessionRepository
             ->update([
                 'revoked_at' => new DateTimeImmutable('now'),
             ]);
+    }
+
+
+
+    public function findById(SessionId $sessionId): ?Session
+    {
+        $model = IdentitySessionModel::query()
+            ->find($sessionId->value());
+
+        if ($model === null) {
+            return null;
+        }
+
+        return Session::reconstitute(
+            sessionId: SessionId::fromString($model->id),
+            userId: $model->user_id,
+            tokenHash: $model->token_hash,
+            expiresAt: $model->expires_at,
+            revoked: $model->revoked_at !== null,
+        );
     }
 
 

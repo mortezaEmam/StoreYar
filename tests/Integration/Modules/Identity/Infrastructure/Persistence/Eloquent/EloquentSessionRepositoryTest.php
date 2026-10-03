@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use StoreYar\Modules\Identity\Domain\Contracts\SessionRepository;
 use StoreYar\Modules\Identity\Domain\ValueObjects\SessionId;
+use StoreYar\Modules\Identity\Infrastructure\Persistence\Eloquent\IdentitySessionModel;
 use Tests\TestCase;
 
 final class EloquentSessionRepositoryTest extends TestCase
@@ -76,5 +77,37 @@ final class EloquentSessionRepositoryTest extends TestCase
 
         self::assertNotNull($otherUser);
         self::assertNull($otherUser->revoked_at);
+    }
+
+
+    public function test_find_by_id_returns_session(): void
+    {
+        $sessionId = SessionId::generate();
+        $userId = '01JSESSIONUSER000000000001';
+        $tokenHash = hash('sha256', 'find-by-id-token');
+
+        $expiresAt = new \DateTimeImmutable('+30 days');
+
+        IdentitySessionModel::query()->create([
+            'id' => $sessionId->value(),
+            'user_id' => $userId,
+            'token_hash' => $tokenHash,
+            'expires_at' => $expiresAt,
+            'revoked_at' => null,
+        ]);
+
+        $repository = $this->app->make(SessionRepository::class);
+
+        $session = $repository->findById($sessionId);
+
+        self::assertNotNull($session);
+        self::assertTrue($session->sessionId()->equals($sessionId));
+        self::assertSame($userId, $session->userId());
+        self::assertSame($tokenHash, $session->tokenHash());
+        self::assertSame(
+            $expiresAt->format('Y-m-d H:i:s'),
+            $session->expiresAt()->format('Y-m-d H:i:s'),
+        );
+        self::assertFalse($session->isRevoked());
     }
 }

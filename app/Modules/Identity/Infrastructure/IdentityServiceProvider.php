@@ -29,6 +29,8 @@ use StoreYar\Modules\Identity\Application\Queries\ValidateSession\ValidateSessio
 use StoreYar\Modules\Identity\Application\Queries\ValidateSession\ValidateSessionQuery;
 use StoreYar\Modules\Identity\Application\Commands\RevokeAllUserSessions\RevokeAllUserSessionsCommand;
 use StoreYar\Modules\Identity\Application\Commands\RevokeAllUserSessions\RevokeAllUserSessionsHandler;
+use StoreYar\Modules\Identity\Application\Commands\RotateSession\RotateSessionCommand;
+use StoreYar\Modules\Identity\Application\Commands\RotateSession\RotateSessionHandler;
 final class IdentityServiceProvider extends ServiceProvider
 {
     public function register(): void
@@ -104,6 +106,12 @@ final class IdentityServiceProvider extends ServiceProvider
         $this->app->make(CommandHandlerRegistry::class)->register(
             RevokeAllUserSessionsCommand::class,
             RevokeAllUserSessionsHandler::class,
+        );
+
+
+        $this->app->make(CommandHandlerRegistry::class)->register(
+            RotateSessionCommand::class,
+            RotateSessionHandler::class,
         );
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace StoreYar\Modules\Identity\Domain\Contracts;
 
 use StoreYar\Modules\Identity\Domain\ValueObjects\SessionId;
+use StoreYar\Modules\Identity\Domain\Entities\Session;
 
 interface SessionRepository
 {
@@ -25,4 +26,7 @@ interface SessionRepository
         string $tokenHash,
         \DateTimeImmutable $now,
     ): ?SessionId;
+
+
+    public function findById(SessionId $sessionId): ?Session;
 }

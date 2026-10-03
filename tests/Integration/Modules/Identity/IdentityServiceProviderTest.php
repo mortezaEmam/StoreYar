@@ -90,4 +90,22 @@ final class IdentityServiceProviderTest extends TestCase
                 ->handlerFor(RevokeAllUserSessionsCommand::class),
         );
     }
+
+
+
+    public function test_it_registers_rotate_session_command_handler(): void
+    {
+        $registry = $this->app->make(
+            \StoreYar\Shared\Application\Bus\Command\CommandHandlerRegistry::class,
+        );
+
+        $map = $registry->map();
+
+        self::assertSame(
+            \StoreYar\Modules\Identity\Application\Commands\RotateSession\RotateSessionHandler::class,
+            $map->handlerFor(
+                \StoreYar\Modules\Identity\Application\Commands\RotateSession\RotateSessionCommand::class,
+            ),
+        );
+    }
 }
