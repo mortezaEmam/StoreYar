@@ -7,8 +7,10 @@ namespace StoreYar\Modules\Identity\Presentation\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use StoreYar\Modules\Identity\Application\Commands\AuthenticateUser\AuthenticateUserCommand;
+use StoreYar\Modules\Identity\Application\Commands\CreateUser\CreateUserCommand;
 use StoreYar\Modules\Identity\Application\Commands\RevokeSession\RevokeSessionCommand;
 use StoreYar\Modules\Identity\Application\Commands\RotateSession\RotateSessionCommand;
+use StoreYar\Modules\Identity\Application\Commands\SetPassword\SetPasswordCommand;
 use StoreYar\Modules\Identity\Application\Queries\GetUserById\GetUserByIdQuery;
 use StoreYar\Modules\Identity\Application\Queries\ValidateSession\ValidateSessionQuery;
 use StoreYar\Modules\Identity\Application\Results\AuthenticationResult;
@@ -17,6 +19,7 @@ use StoreYar\Modules\Identity\Domain\Aggregates\User;
 use StoreYar\Modules\Identity\Domain\Contracts\SessionRepository;
 use StoreYar\Modules\Identity\Domain\ValueObjects\SessionId;
 use StoreYar\Modules\Identity\Presentation\Http\Requests\LoginRequest;
+use StoreYar\Modules\Identity\Presentation\Http\Requests\RegisterRequest;
 use StoreYar\Modules\Identity\Presentation\Http\Resources\AuthenticationResource;
 use StoreYar\Modules\Identity\Presentation\Http\Resources\UserResource;
 use StoreYar\Shared\Application\Bus\Command\CommandBus;
@@ -29,6 +32,43 @@ final class AuthController
         private QueryBus $queries,
         private SessionRepository $sessions,
     ) {}
+
+
+    public function register(RegisterRequest $request): JsonResponse
+    {
+        try {
+            /** @var User $user */
+            $user = $this->commands->dispatch(
+                new CreateUserCommand(
+                    email: $request->string('email')->toString(),
+                    name: $request->string('name')->toString(),
+                ),
+            );
+
+            $this->commands->dispatch(
+                new SetPasswordCommand(
+                    userId: $user->id(),
+                    password: $request->string('password')->toString(),
+                ),
+            );
+
+            /** @var AuthenticationResult $result */
+            $result = $this->commands->dispatch(
+                new AuthenticateUserCommand(
+                    email: $request->string('email')->toString(),
+                    password: $request->string('password')->toString(),
+                ),
+            );
+
+            return (new AuthenticationResource($result))
+                ->response()
+                ->setStatusCode(201);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
 
     public function login(LoginRequest $request): JsonResponse
     {

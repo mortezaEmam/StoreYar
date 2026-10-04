@@ -183,4 +183,64 @@ final class AuthApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.email', 'user@example.com');
     }
+
+    public function test_register_creates_user_and_returns_token(): void
+    {
+        $response = $this->postJson('/api/auth/register', [
+            'email' => 'new@example.com',
+            'name' => 'New User',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonStructure([
+                'data' => [
+                    'token',
+                    'session_id',
+                    'expires_at',
+                    'user' => [
+                        'id',
+                        'email',
+                        'name',
+                        'status',
+                    ],
+                ],
+            ])
+            ->assertJsonPath('data.user.email', 'new@example.com')
+            ->assertJsonPath('data.user.name', 'New User');
+
+        $token = $response->json('data.token');
+
+        $this->withToken($token)
+            ->getJson('/api/auth/me')
+            ->assertOk()
+            ->assertJsonPath('data.email', 'new@example.com');
+    }
+
+    public function test_register_validation_errors(): void
+    {
+        $response = $this->postJson('/api/auth/register', [
+            'email' => 'bad',
+            'name' => '',
+            'password' => 'short',
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['email', 'name', 'password']);
+    }
+
+    public function test_register_duplicate_email(): void
+    {
+        $this->createUserWithPassword(email: 'exists@example.com');
+
+        $response = $this->postJson('/api/auth/register', [
+            'email' => 'exists@example.com',
+            'name' => 'Another User',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertUnprocessable();
+    }
 }

@@ -27,6 +27,12 @@ final readonly class CreateUserHandler implements CommandHandler
             );
         }
 
+        if ($this->users->findByEmail($command->email) !== null) {
+            throw new \InvalidArgumentException(
+                'A user with this email already exists.',
+            );
+        }
+
         $user = User::create(
             id: UserId::generate(),
             email: $command->email,
