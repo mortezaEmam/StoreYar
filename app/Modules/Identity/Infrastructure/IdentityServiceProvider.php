@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace StoreYar\Modules\Identity\Infrastructure;
 
 use Illuminate\Support\ServiceProvider;
+use StoreYar\Modules\Identity\Application\Commands\SetPassword\SetPasswordCommand;
+use StoreYar\Modules\Identity\Application\Commands\SetPassword\SetPasswordHandler;
 use StoreYar\Modules\Identity\Domain\Contracts\PasswordHasher;
 use StoreYar\Modules\Identity\Domain\Contracts\UserRepository;
 use StoreYar\Modules\Identity\Infrastructure\Security\LaravelPasswordHasher;
@@ -112,6 +114,12 @@ final class IdentityServiceProvider extends ServiceProvider
         $this->app->make(CommandHandlerRegistry::class)->register(
             RotateSessionCommand::class,
             RotateSessionHandler::class,
+        );
+
+
+        $this->app->make(CommandHandlerRegistry::class)->register(
+            SetPasswordCommand::class,
+            SetPasswordHandler::class,
         );
     }
 }
