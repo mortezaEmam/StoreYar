@@ -111,4 +111,15 @@ final class EloquentOrganizationRepository implements OrganizationRepository
             version: (int) $model->version,
         );
     }
+
+
+    public function findByOwnerUserId(string $ownerUserId): array
+    {
+        return OrganizationModel::query()
+            ->where('owner_user_id', $ownerUserId)
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn (OrganizationModel $model) => $this->toDomain($model))
+            ->all();
+    }
 }

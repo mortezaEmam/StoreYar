@@ -14,4 +14,10 @@ interface OrganizationRepository
     public function findByName(string $name): ?Organization;
 
     public function save(Organization $organization): void;
+
+
+    /**
+     * @return list<Organization>
+     */
+    public function findByOwnerUserId(string $ownerUserId): array;
 }
