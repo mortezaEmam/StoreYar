@@ -243,4 +243,22 @@ final class AuthApiTest extends TestCase
 
         $response->assertUnprocessable();
     }
+
+
+    public function test_login_is_rate_limited(): void
+    {
+        $this->createUserWithPassword();
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/auth/login', [
+                'email' => 'user@example.com',
+                'password' => 'wrong-password',
+            ])->assertUnauthorized();
+        }
+
+        $this->postJson('/api/auth/login', [
+            'email' => 'user@example.com',
+            'password' => 'wrong-password',
+        ])->assertStatus(429);
+    }
 }
