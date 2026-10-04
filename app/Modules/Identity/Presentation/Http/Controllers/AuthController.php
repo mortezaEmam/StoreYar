@@ -17,6 +17,10 @@ use StoreYar\Modules\Identity\Application\Results\AuthenticationResult;
 use StoreYar\Modules\Identity\Application\Results\SessionRotationResult;
 use StoreYar\Modules\Identity\Domain\Aggregates\User;
 use StoreYar\Modules\Identity\Domain\Contracts\SessionRepository;
+use StoreYar\Modules\Identity\Domain\Exceptions\IdentityDomainException;
+use StoreYar\Modules\Identity\Domain\Exceptions\InvalidCredentials;
+use StoreYar\Modules\Identity\Domain\Exceptions\InvalidSession;
+use StoreYar\Modules\Identity\Domain\Exceptions\UserAlreadyExists;
 use StoreYar\Modules\Identity\Domain\ValueObjects\SessionId;
 use StoreYar\Modules\Identity\Presentation\Http\Requests\LoginRequest;
 use StoreYar\Modules\Identity\Presentation\Http\Requests\RegisterRequest;
@@ -28,10 +32,12 @@ use StoreYar\Shared\Application\Bus\Query\QueryBus;
 final class AuthController
 {
     public function __construct(
-        private CommandBus $commands,
-        private QueryBus $queries,
+        private CommandBus        $commands,
+        private QueryBus          $queries,
         private SessionRepository $sessions,
-    ) {}
+    )
+    {
+    }
 
 
     public function register(RegisterRequest $request): JsonResponse
@@ -63,10 +69,8 @@ final class AuthController
             return (new AuthenticationResource($result))
                 ->response()
                 ->setStatusCode(201);
-        } catch (\InvalidArgumentException $e) {
-            return response()->json([
-                'message' => $e->getMessage(),
-            ], 422);
+        } catch (UserAlreadyExists|IdentityDomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         }
     }
 
@@ -84,10 +88,9 @@ final class AuthController
             return (new AuthenticationResource($result))
                 ->response()
                 ->setStatusCode(200);
-        } catch (\InvalidArgumentException) {
-            return response()->json([
-                'message' => 'Invalid credentials.',
-            ], 401);
+        } catch (InvalidCredentials) {
+            return response()->json(['message' => 'Invalid credentials.'], 401);
+
         }
     }
 
@@ -119,10 +122,8 @@ final class AuthController
             return (new AuthenticationResource($result))
                 ->response()
                 ->setStatusCode(200);
-        } catch (\InvalidArgumentException) {
-            return response()->json([
-                'message' => 'Invalid session.',
-            ], 401);
+        } catch (InvalidSession) {
+            return response()->json(['message' => 'Invalid session.'], 401);
         }
     }
 

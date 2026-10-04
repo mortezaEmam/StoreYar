@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace StoreYar\Modules\Identity\Application\Commands\AuthenticateUser;
 
+use App\Modules\Identity\Domain\Exceptions\InvalidAuthenticateUser;
 use StoreYar\Modules\Identity\Application\Results\AuthenticationResult;
+use StoreYar\Modules\Identity\Domain\Exceptions\InvalidCredentials;
 use StoreYar\Shared\Domain\Contracts\Clock;
 use StoreYar\Modules\Identity\Domain\Contracts\PasswordHasher;
 use StoreYar\Modules\Identity\Domain\Contracts\SessionRepository;
@@ -31,23 +33,18 @@ final class AuthenticateUserHandler implements CommandHandler
     public function handle(Command $command): mixed
     {
         if (! $command instanceof AuthenticateUserCommand) {
-            throw new \InvalidArgumentException(
-                'AuthenticateUserHandler received an invalid command.',
-            );
+            new InvalidAuthenticateUser();
+
         }
 
         $user = $this->users->findByEmail($command->email);
 
         if ($user === null) {
-            throw new \InvalidArgumentException(
-                'Invalid credentials.',
-            );
+            throw new InvalidCredentials();
         }
 
         if (! $user->status()->isActive()) {
-            throw new \InvalidArgumentException(
-                'Invalid credentials.',
-            );
+            throw new InvalidCredentials();
         }
 
         $passwordHash = $this->credentials->findPasswordHash(
@@ -61,9 +58,7 @@ final class AuthenticateUserHandler implements CommandHandler
                 $passwordHash,
             )
         ) {
-            throw new \InvalidArgumentException(
-                'Invalid credentials.',
-            );
+            throw new InvalidCredentials();
         }
 
         $token = $this->tokenGenerator->generate();

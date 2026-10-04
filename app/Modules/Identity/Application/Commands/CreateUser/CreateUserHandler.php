@@ -6,6 +6,7 @@ namespace StoreYar\Modules\Identity\Application\Commands\CreateUser;
 
 use StoreYar\Modules\Identity\Domain\Aggregates\User;
 use StoreYar\Modules\Identity\Domain\Contracts\UserRepository;
+use StoreYar\Modules\Identity\Domain\Exceptions\UserAlreadyExists;
 use StoreYar\Modules\Identity\Domain\ValueObjects\UserId;
 use StoreYar\Shared\Application\Bus\Command\Command;
 use StoreYar\Shared\Application\Bus\Command\CommandHandler;
@@ -28,9 +29,7 @@ final readonly class CreateUserHandler implements CommandHandler
         }
 
         if ($this->users->findByEmail($command->email) !== null) {
-            throw new \InvalidArgumentException(
-                'A user with this email already exists.',
-            );
+            throw new UserAlreadyExists($command->email);
         }
 
         $user = User::create(

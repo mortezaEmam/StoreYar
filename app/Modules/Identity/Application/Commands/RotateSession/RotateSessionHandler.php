@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace StoreYar\Modules\Identity\Application\Commands\RotateSession;
 
+use App\Modules\Identity\Domain\Exceptions\InvalidRotateSession;
 use Illuminate\Support\Facades\DB;
 use StoreYar\Modules\Identity\Application\Results\SessionRotationResult;
 use StoreYar\Modules\Identity\Domain\Contracts\SessionRepository;
 use StoreYar\Modules\Identity\Domain\Contracts\SessionTokenGenerator;
 use StoreYar\Modules\Identity\Domain\Entities\Session;
+use StoreYar\Modules\Identity\Domain\Exceptions\InvalidSession;
 use StoreYar\Modules\Identity\Domain\ValueObjects\SessionId;
 use StoreYar\Shared\Application\Bus\Command\Command;
 use StoreYar\Shared\Application\Bus\Command\CommandHandler;
@@ -25,9 +27,7 @@ final class RotateSessionHandler implements CommandHandler
     public function handle(Command $command): mixed
     {
         if (! $command instanceof RotateSessionCommand) {
-            throw new \InvalidArgumentException(
-                'RotateSessionHandler received an invalid command.',
-            );
+            new InvalidRotateSession();
         }
 
         $now = $this->clock->now();
@@ -40,9 +40,7 @@ final class RotateSessionHandler implements CommandHandler
             $currentSession === null
             || ! $currentSession->isActive($now)
         ) {
-            throw new \InvalidArgumentException(
-                'Invalid session.',
-            );
+            throw new InvalidSession();
         }
 
         $token = $this->tokenGenerator->generate();
