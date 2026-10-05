@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use StoreYar\Modules\Identity\Domain\Contracts\SessionRepository;
 use StoreYar\Modules\Identity\Domain\ValueObjects\SessionId;
+use StoreYar\Modules\Organization\Application\Commands\CreateBranch\CreateBranchCommand;
 use StoreYar\Modules\Organization\Application\Commands\CreateOrganization\CreateOrganizationCommand;
 use StoreYar\Modules\Organization\Application\Commands\RenameOrganization\RenameOrganizationCommand;
 use StoreYar\Modules\Organization\Application\Queries\GetOrganizationById\GetOrganizationByIdQuery;
@@ -15,7 +16,9 @@ use StoreYar\Modules\Organization\Application\Queries\ListOrganizationsByOwner\L
 use StoreYar\Modules\Organization\Domain\Aggregates\Organization;
 use StoreYar\Modules\Organization\Domain\Exceptions\OrganizationAlreadyExists;
 use StoreYar\Modules\Organization\Domain\Exceptions\OrganizationDomainException;
+use StoreYar\Modules\Organization\Presentation\Http\Requests\CreateBranchRequest;
 use StoreYar\Modules\Organization\Presentation\Http\Requests\CreateOrganizationRequest;
+use StoreYar\Modules\Organization\Presentation\Http\Resources\BranchResource;
 use StoreYar\Modules\Organization\Presentation\Http\Resources\OrganizationResource;
 use StoreYar\Shared\Application\Bus\Command\CommandBus;
 
@@ -204,6 +207,40 @@ final class OrganizationController
             return response()->json(['message' => $e->getMessage()], $status);
         } catch (\LogicException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+
+    public function storeBranch(CreateBranchRequest $request, string $id): JsonResponse
+    {
+        /** @var SessionId $sessionId */
+        $sessionId = $request->attributes->get('session_id');
+        $session = $this->sessions->findById($sessionId);
+
+        if ($session === null) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        try {
+            $branch = $this->commands->dispatch(
+                new CreateBranchCommand(
+                    organizationId: $id,
+                    name: $request->string('name')->toString(),
+                    actorUserId: $session->userId(),
+                ),
+            );
+
+            return (new BranchResource($branch))
+                ->response()
+                ->setStatusCode(201);
+        } catch (\InvalidArgumentException $e) {
+            $status = match ($e->getMessage()) {
+                'Not allowed.' => 403,
+                'Organization not found.' => 404,
+                default => 422,
+            };
+
+            return response()->json(['message' => $e->getMessage()], $status);
         }
     }
 }

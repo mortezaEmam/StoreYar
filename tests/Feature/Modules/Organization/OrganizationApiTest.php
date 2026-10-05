@@ -240,4 +240,26 @@ final class OrganizationApiTest extends TestCase
             ->postJson('/api/organizations/'.$id.'/suspend')
             ->assertForbidden();
     }
+
+
+    public function test_create_branch(): void
+    {
+        $token = $this->authenticatedToken();
+
+        $org = $this->withToken($token)->postJson('/api/organizations', [
+            'name' => 'Shop With Branch',
+        ])->assertCreated();
+
+        $orgId = $org->json('data.id');
+
+        $response = $this->withToken($token)->postJson(
+            '/api/organizations/'.$orgId.'/branches',
+            ['name' => 'Main Branch'],
+        );
+
+        $response->assertCreated()
+            ->assertJsonPath('data.name', 'Main Branch')
+            ->assertJsonPath('data.organization_id', $orgId)
+            ->assertJsonPath('data.status', 'active');
+    }
 }
