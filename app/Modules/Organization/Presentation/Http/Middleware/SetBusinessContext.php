@@ -31,9 +31,15 @@ final class SetBusinessContext
             ], 400);
         }
 
-        $organization = $this->organizations->findById(
-            OrganizationId::fromString($businessId),
-        );
+        try {
+            $organizationId = OrganizationId::fromString($businessId);
+        } catch (\InvalidArgumentException) {
+            return response()->json([
+                'message' => 'Invalid or inactive business.',
+            ], 403);
+        }
+
+        $organization = $this->organizations->findById($organizationId);
 
         if ($organization === null || ! $organization->status()->isActive()) {
             return response()->json([
@@ -41,10 +47,18 @@ final class SetBusinessContext
             ], 403);
         }
 
-        $branchId = $request->header('X-Branch-Id');
+        $branchHeader = $request->header('X-Branch-Id');
 
-        if ($branchId !== null && $branchId !== '') {
-            $branch = $this->branches->findById(BranchId::fromString($branchId));
+        if ($branchHeader !== null && $branchHeader !== '') {
+            try {
+                $branchId = BranchId::fromString($branchHeader);
+            } catch (\InvalidArgumentException) {
+                return response()->json([
+                    'message' => 'Invalid or inactive branch.',
+                ], 403);
+            }
+
+            $branch = $this->branches->findById($branchId);
 
             if (
                 $branch === null

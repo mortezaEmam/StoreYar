@@ -4,6 +4,8 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use StoreYar\Modules\Identity\Presentation\Http\Middleware\AuthenticateSession;
+use StoreYar\Modules\Organization\Presentation\Http\Middleware\SetBusinessContext;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,7 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'auth.session' => \StoreYar\Modules\Identity\Presentation\Http\Middleware\AuthenticateSession::class,
+            'auth.session' => AuthenticateSession::class,
+            'business.context' => SetBusinessContext::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

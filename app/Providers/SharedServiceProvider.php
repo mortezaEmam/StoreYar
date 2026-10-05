@@ -19,6 +19,8 @@ use StoreYar\Shared\Application\Bus\Query\QueryBus;
 use StoreYar\Shared\Application\Bus\Query\QueryHandlerMap;
 use StoreYar\Shared\Application\Bus\Query\QueryHandlerRegistry;
 use StoreYar\Shared\Application\Bus\Query\QueryHandlerResolver;
+use StoreYar\Shared\Application\Context\BusinessContext;
+use StoreYar\Shared\Application\Context\CurrentBusinessContext;
 use StoreYar\Shared\Domain\Contracts\Clock;
 use StoreYar\Shared\Infrastructure\Clock\SystemClock;
 
@@ -75,6 +77,13 @@ final class SharedServiceProvider extends ServiceProvider
         $this->app->singleton(
             Clock::class,
             SystemClock::class,
+        );
+
+
+        $this->app->singleton(CurrentBusinessContext::class);
+        $this->app->singleton(
+            BusinessContext::class,
+            fn ($app) => $app->make(CurrentBusinessContext::class),
         );
     }
 }

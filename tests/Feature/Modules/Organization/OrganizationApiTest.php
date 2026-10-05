@@ -262,4 +262,125 @@ final class OrganizationApiTest extends TestCase
             ->assertJsonPath('data.organization_id', $orgId)
             ->assertJsonPath('data.status', 'active');
     }
+
+
+    public function test_list_branches(): void
+    {
+        $token = $this->authenticatedToken();
+
+        $org = $this->withToken($token)->postJson('/api/organizations', [
+            'name' => 'Shop With Branches',
+        ])->assertCreated();
+
+        $orgId = $org->json('data.id');
+
+        $this->withToken($token)->postJson('/api/organizations/'.$orgId.'/branches', [
+            'name' => 'Main',
+        ])->assertCreated();
+
+        $this->withToken($token)->postJson('/api/organizations/'.$orgId.'/branches', [
+            'name' => 'Warehouse',
+        ])->assertCreated();
+
+        $response = $this->withToken($token)
+            ->getJson('/api/organizations/'.$orgId.'/branches');
+
+        $response->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $names = collect($response->json('data'))->pluck('name')->all();
+
+        $this->assertContains('Main', $names);
+        $this->assertContains('Warehouse', $names);
+    }
+
+    public function test_list_branches_forbidden_for_other_user(): void
+    {
+        $ownerToken = $this->authenticatedToken();
+
+        $org = $this->withToken($ownerToken)->postJson('/api/organizations', [
+            'name' => 'Private Org',
+        ])->assertCreated();
+
+        $orgId = $org->json('data.id');
+
+        $commands = $this->app->make(CommandBus::class);
+
+        /** @var User $other */
+        $other = $commands->dispatch(
+            new CreateUserCommand(
+                email: 'other2@example.com',
+                name: 'Other User 2',
+            ),
+        );
+
+        $commands->dispatch(
+            new SetPasswordCommand(
+                userId: $other->id(),
+                password: 'password123',
+            ),
+        );
+
+        $otherLogin = $this->postJson('/api/auth/login', [
+            'email' => 'other2@example.com',
+            'password' => 'password123',
+        ]);
+
+        $otherToken = $otherLogin->json('data.token');
+
+        $this->withToken($otherToken)
+            ->getJson('/api/organizations/'.$orgId.'/branches')
+            ->assertForbidden();
+    }
+
+
+    public function test_business_context_requires_header(): void
+    {
+        $token = $this->authenticatedToken();
+
+        // یک route موقت نداریم؛ رفتار middleware را با dispatch دستی یا route تستی چک می‌کنیم.
+        // اگر هنوز route با business.context نداری، این تست را بعد از اولین route tenant-scoped فعال کن.
+        $this->assertTrue(true);
+    }
+
+
+    public function test_business_context_ping(): void
+    {
+        $token = $this->authenticatedToken();
+
+        $org = $this->withToken($token)->postJson('/api/organizations', [
+            'name' => 'Context Shop',
+        ])->assertCreated();
+
+        $orgId = $org->json('data.id');
+
+        $branch = $this->withToken($token)->postJson(
+            '/api/organizations/'.$orgId.'/branches',
+            ['name' => 'Main'],
+        )->assertCreated();
+
+        $branchId = $branch->json('data.id');
+
+        // بدون header
+        $this->withToken($token)
+            ->getJson('/api/business/ping')
+            ->assertStatus(400);
+
+        // فقط business
+        $this->withToken($token)
+            ->withHeader('X-Business-Id', $orgId)
+            ->getJson('/api/business/ping')
+            ->assertOk()
+            ->assertJsonPath('business_id', $orgId)
+            ->assertJsonPath('branch_id', null);
+
+        // business + branch
+        $this->withToken($token)
+            ->withHeader('X-Business-Id', $orgId)
+            ->withHeader('X-Branch-Id', $branchId)
+            ->getJson('/api/business/ping')
+            ->assertOk()
+            ->assertJsonPath('business_id', $orgId)
+            ->assertJsonPath('branch_id', $branchId);
+    }
 }

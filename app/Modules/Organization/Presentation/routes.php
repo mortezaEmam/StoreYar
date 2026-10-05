@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
 use StoreYar\Modules\Identity\Presentation\Http\Middleware\AuthenticateSession;
 use StoreYar\Modules\Organization\Presentation\Http\Controllers\OrganizationController;
+use StoreYar\Shared\Application\Context\BusinessContext;
 
 Route::middleware('auth.session')->group(function (): void {
     Route::get('/', [OrganizationController::class, 'index']);
@@ -18,4 +19,7 @@ Route::middleware('auth.session')->group(function (): void {
 
     Route::post('/{id}/branches', [OrganizationController::class, 'storeBranch'])
         ->middleware('throttle:10,1');
+
+    Route::get('/{id}/branches', [OrganizationController::class, 'listBranches']);
 });
+

@@ -12,6 +12,7 @@ use StoreYar\Modules\Organization\Application\Commands\CreateBranch\CreateBranch
 use StoreYar\Modules\Organization\Application\Commands\CreateOrganization\CreateOrganizationCommand;
 use StoreYar\Modules\Organization\Application\Commands\RenameOrganization\RenameOrganizationCommand;
 use StoreYar\Modules\Organization\Application\Queries\GetOrganizationById\GetOrganizationByIdQuery;
+use StoreYar\Modules\Organization\Application\Queries\ListBranchesByOrganization\ListBranchesByOrganizationQuery;
 use StoreYar\Modules\Organization\Application\Queries\ListOrganizationsByOwner\ListOrganizationsByOwnerQuery;
 use StoreYar\Modules\Organization\Domain\Aggregates\Organization;
 use StoreYar\Modules\Organization\Domain\Exceptions\OrganizationAlreadyExists;
@@ -243,4 +244,39 @@ final class OrganizationController
             return response()->json(['message' => $e->getMessage()], $status);
         }
     }
+
+
+    public function listBranches(Request $request, string $id): JsonResponse
+    {
+        /** @var \StoreYar\Modules\Identity\Domain\ValueObjects\SessionId $sessionId */
+        $sessionId = $request->attributes->get('session_id');
+        $session = $this->sessions->findById($sessionId);
+
+        if ($session === null) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        try {
+            $branches = $this->queries->ask(
+                new ListBranchesByOrganizationQuery(
+                    organizationId: $id,
+                    actorUserId: $session->userId(),
+                ),
+            );
+
+            return BranchResource::collection($branches)
+                ->response()
+                ->setStatusCode(200);
+        } catch (\InvalidArgumentException $e) {
+            $status = match ($e->getMessage()) {
+                'Not allowed.' => 403,
+                'Organization not found.' => 404,
+                default => 422,
+            };
+
+            return response()->json(['message' => $e->getMessage()], $status);
+        }
+    }
+
+
 }

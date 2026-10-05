@@ -25,6 +25,8 @@ use StoreYar\Modules\Organization\Infrastructure\Persistence\Eloquent\EloquentBr
 use StoreYar\Modules\Organization\Infrastructure\Persistence\Eloquent\EloquentOrganizationRepository;
 use StoreYar\Shared\Application\Bus\Command\CommandHandlerRegistry;
 use StoreYar\Shared\Application\Bus\Query\QueryHandlerRegistry;
+use StoreYar\Modules\Organization\Application\Queries\ListBranchesByOrganization\ListBranchesByOrganizationQuery;
+use StoreYar\Modules\Organization\Application\Queries\ListBranchesByOrganization\ListBranchesByOrganizationHandler;
 
 final class OrganizationServiceProvider extends ServiceProvider
 {
@@ -73,5 +75,11 @@ final class OrganizationServiceProvider extends ServiceProvider
         $this->app->singleton(BranchRepository::class, EloquentBranchRepository::class);
 
         $registry->register(CreateBranchCommand::class, CreateBranchHandler::class);
+
+
+        $queryRegistry->register(
+            ListBranchesByOrganizationQuery::class,
+            ListBranchesByOrganizationHandler::class,
+        );
     }
 }
