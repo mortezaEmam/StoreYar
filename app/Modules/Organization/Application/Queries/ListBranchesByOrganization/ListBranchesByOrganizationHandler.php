@@ -36,9 +36,9 @@ final class ListBranchesByOrganizationHandler implements QueryHandler
             throw new \InvalidArgumentException('Organization not found.');
         }
 
-        if ($organization->ownerUserId() !== $query->actorUserId) {
-            throw new \InvalidArgumentException('Not allowed.');
-        }
+//        if ($organization->ownerUserId() !== $query->actorUserId) {
+//            throw new \InvalidArgumentException('Not allowed.');
+//        }
 
         return $this->branches->findByOrganizationId(
             $organization->organizationId(),

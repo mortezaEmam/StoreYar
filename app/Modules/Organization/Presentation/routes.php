@@ -12,14 +12,19 @@ Route::middleware('auth.session')->group(function (): void {
     Route::post('/', [OrganizationController::class, 'store'])
         ->middleware('throttle:10,1');
 
-    Route::get('/{id}', [OrganizationController::class, 'show']);
-    Route::patch('/{id}', [OrganizationController::class, 'rename']);
-    Route::post('/{id}/suspend', [OrganizationController::class, 'suspend']);
-    Route::post('/{id}/activate', [OrganizationController::class, 'activate']);
+    // عملیات روی یک سازمان — نیاز به عضویت
+    Route::middleware('org.member')->group(function (): void {
+        Route::get('/{id}', [OrganizationController::class, 'show']);
+        Route::get('/{id}/branches', [OrganizationController::class, 'listBranches']);
+        Route::post('/{id}/branches', [OrganizationController::class, 'storeBranch'])
+            ->middleware('throttle:10,1');
+    });
 
-    Route::post('/{id}/branches', [OrganizationController::class, 'storeBranch'])
-        ->middleware('throttle:10,1');
-
-    Route::get('/{id}/branches', [OrganizationController::class, 'listBranches']);
+    // فقط owner
+    Route::middleware('org.member:owner')->group(function (): void {
+        Route::patch('/{id}', [OrganizationController::class, 'rename']);
+        Route::post('/{id}/suspend', [OrganizationController::class, 'suspend']);
+        Route::post('/{id}/activate', [OrganizationController::class, 'activate']);
+    });
 });
 

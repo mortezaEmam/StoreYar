@@ -6,6 +6,7 @@ namespace Tests\Feature\Modules\Organization;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use StoreYar\Modules\Authorization\Domain\Contracts\MembershipRepository;
 use StoreYar\Modules\Identity\Application\Commands\CreateUser\CreateUserCommand;
 use StoreYar\Modules\Identity\Application\Commands\SetPassword\SetPasswordCommand;
 use StoreYar\Modules\Identity\Domain\Aggregates\User;
@@ -382,5 +383,112 @@ final class OrganizationApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('business_id', $orgId)
             ->assertJsonPath('branch_id', $branchId);
+    }
+
+
+    public function test_create_organization_grants_owner_membership(): void
+    {
+        $token = $this->authenticatedToken();
+
+        $response = $this->withToken($token)->postJson('/api/organizations', [
+            'name' => 'Owned Shop',
+        ])->assertCreated();
+
+        $orgId = $response->json('data.id');
+        $ownerUserId = $response->json('data.owner_user_id');
+
+        $memberships = $this->app->make(MembershipRepository::class);
+        $membership = $memberships->findByOrganizationAndUser($orgId, $ownerUserId);
+
+        $this->assertNotNull($membership);
+        $this->assertTrue($membership->role()->isOwner());
+    }
+
+
+    public function test_member_cannot_rename_organization(): void
+    {
+        $ownerToken = $this->authenticatedToken();
+
+        $org = $this->withToken($ownerToken)->postJson('/api/organizations', [
+            'name' => 'Restricted Shop',
+        ])->assertCreated();
+
+        $orgId = $org->json('data.id');
+
+        $commands = $this->app->make(CommandBus::class);
+
+        /** @var User $member */
+        $member = $commands->dispatch(
+            new CreateUserCommand(
+                email: 'member@example.com',
+                name: 'Member',
+            ),
+        );
+
+        $memberUserId = is_object($member->id()) && method_exists($member->id(), 'value')
+            ? $member->id()->value()
+            : (string) $member->id();
+# داخل تست موقتاً:
+        $commands->dispatch(
+            new SetPasswordCommand(
+                userId: $memberUserId,
+                password: 'password123',
+            ),
+        );
+
+        $commands->dispatch(
+            new \StoreYar\Modules\Authorization\Application\Commands\GrantMembership\GrantMembershipCommand(
+                organizationId: $orgId,
+                userId: $memberUserId,
+                role: \StoreYar\Modules\Authorization\Domain\Enums\Role::MEMBER,
+            ),
+        );
+
+        /** @var \StoreYar\Modules\Authorization\Domain\Contracts\MembershipRepository $memberships */
+        $memberships = $this->app->make(
+            \StoreYar\Modules\Authorization\Domain\Contracts\MembershipRepository::class,
+        );
+
+        // قبل از HTTP: membership باید وجود داشته باشد
+        $this->assertNotNull(
+            $memberships->findByOrganizationAndUser($orgId, $memberUserId),
+            'Membership was not persisted for member user.',
+        );
+
+        $login = $this->postJson('/api/auth/login', [
+            'email' => 'member@example.com',
+            'password' => 'password123',
+        ])->assertOk();
+
+        $memberToken = $login->json('data.token');
+        $this->assertNotEmpty($memberToken);
+
+        // id کاربر از /me باید همان membership باشد
+        $me = $this->withToken($memberToken)->getJson('/api/auth/me')->assertOk();
+        $meUserId = $me->json('data.id');
+        dump($memberUserId, $meUserId, $orgId);
+
+        $this->assertSame(
+            $memberUserId,
+            $meUserId,
+            'Logged-in user id does not match membership user id.',
+        );
+
+        $this->assertNotNull(
+            $memberships->findByOrganizationAndUser($orgId, $meUserId),
+            'No membership for logged-in user id.',
+        );
+
+        // member می‌تواند ببیند
+        $this->withToken($memberToken)
+            ->getJson('/api/organizations/'.$orgId)
+            ->assertOk();
+
+        // member نمی‌تواند rename کند
+        $this->withToken($memberToken)
+            ->patchJson('/api/organizations/'.$orgId, [
+                'name' => 'Hacked',
+            ])
+            ->assertForbidden();
     }
 }

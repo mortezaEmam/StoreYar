@@ -55,30 +55,20 @@ final class OrganizationController
 
     public function show(Request $request, string $id): JsonResponse
     {
-        $sessionId = $request->attributes->get('session_id');
-        $session = $this->sessions->findById($sessionId);
-
-        if ($session === null) {
-            return response()->json(['message' => 'Unauthenticated.'], 401);
-        }
-
         $organization = $this->queries->ask(
             new GetOrganizationByIdQuery(organizationId: $id),
         );
 
         if ($organization === null) {
-            return response()->json(['message' => 'Organization not found.'], 404);
-        }
-
-        if ($organization->ownerUserId() !== $session->userId()) {
-            return response()->json(['message' => 'Forbidden.'], 403);
+            return response()->json([
+                'message' => 'Organization not found.',
+            ], 404);
         }
 
         return (new OrganizationResource($organization))
             ->response()
             ->setStatusCode(200);
     }
-
     public function rename(CreateOrganizationRequest $request, string $id): JsonResponse
     {
         // می‌توانی RenameOrganizationRequest جدا بسازی با rule: name required
