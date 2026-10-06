@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace StoreYar\Modules\Organization\Infrastructure;
 
 use Illuminate\Support\ServiceProvider;
+use StoreYar\Modules\Authorization\Application\Queries\ListMembersByOrganization\ListMembersByOrganizationHandler;
+use StoreYar\Modules\Authorization\Application\Queries\ListMembersByOrganization\ListMembersByOrganizationQuery;
 use StoreYar\Modules\Organization\Application\Commands\ActivateOrganization\ActivateOrganizationCommand;
 use StoreYar\Modules\Organization\Application\Commands\ActivateOrganization\ActivateOrganizationHandler;
 use StoreYar\Modules\Organization\Application\Commands\CreateBranch\CreateBranchCommand;
@@ -80,6 +82,13 @@ final class OrganizationServiceProvider extends ServiceProvider
         $queryRegistry->register(
             ListBranchesByOrganizationQuery::class,
             ListBranchesByOrganizationHandler::class,
+        );
+
+
+
+        $queryRegistry->register(
+            ListMembersByOrganizationQuery::class,
+            ListMembersByOrganizationHandler::class,
         );
     }
 }
