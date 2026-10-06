@@ -25,6 +25,11 @@ final class EnsureOrganizationMembership
 
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
+
+        if (count($roles) === 1 && str_contains($roles[0], ',')) {
+            $roles = array_map('trim', explode(',', $roles[0]));
+        }
+
         /** @var SessionId|null $sessionId */
         $sessionId = $request->attributes->get('session_id');
 

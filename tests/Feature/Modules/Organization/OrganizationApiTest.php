@@ -491,4 +491,111 @@ final class OrganizationApiTest extends TestCase
             ])
             ->assertForbidden();
     }
+
+
+    public function test_list_members_includes_owner(): void
+    {
+        $token = $this->authenticatedToken();
+
+        $org = $this->withToken($token)->postJson('/api/organizations', [
+            'name' => 'Members Shop',
+        ])->assertCreated();
+
+        $orgId = $org->json('data.id');
+        $ownerId = $org->json('data.owner_user_id');
+
+        $response = $this->withToken($token)
+            ->getJson('/api/organizations/'.$orgId.'/members');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.user_id', $ownerId)
+            ->assertJsonPath('data.0.role', 'owner');
+    }
+
+    public function test_owner_can_grant_member(): void
+    {
+        $token = $this->authenticatedToken();
+
+        $org = $this->withToken($token)->postJson('/api/organizations', [
+            'name' => 'Grant Shop',
+        ])->assertCreated();
+
+        $orgId = $org->json('data.id');
+
+        $commands = $this->app->make(CommandBus::class);
+
+        /** @var User $user */
+        $user = $commands->dispatch(
+            new CreateUserCommand(email: 'newmember@example.com', name: 'New Member'),
+        );
+
+        $userId = (string) $user->id();
+
+        $response = $this->withToken($token)->postJson(
+            '/api/organizations/'.$orgId.'/members',
+            [
+                'user_id' => $userId,
+                'role' => 'member',
+            ],
+        );
+
+        $response->assertCreated()
+            ->assertJsonPath('data.user_id', $userId)
+            ->assertJsonPath('data.role', 'member');
+
+        $this->withToken($token)
+            ->getJson('/api/organizations/'.$orgId.'/members')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+    }
+
+    public function test_member_cannot_grant_membership(): void
+    {
+        $ownerToken = $this->authenticatedToken();
+
+        $org = $this->withToken($ownerToken)->postJson('/api/organizations', [
+            'name' => 'No Grant Shop',
+        ])->assertCreated();
+
+        $orgId = $org->json('data.id');
+
+        $commands = $this->app->make(CommandBus::class);
+
+        /** @var User $member */
+        $member = $commands->dispatch(
+            new CreateUserCommand(email: 'onlymember@example.com', name: 'Only Member'),
+        );
+        $memberId = (string) $member->id();
+
+        $commands->dispatch(
+            new SetPasswordCommand(userId: $memberId, password: 'password123'),
+        );
+
+        $commands->dispatch(
+            new \StoreYar\Modules\Authorization\Application\Commands\GrantMembership\GrantMembershipCommand(
+                organizationId: $orgId,
+                userId: $memberId,
+                role: \StoreYar\Modules\Authorization\Domain\Enums\Role::MEMBER,
+            ),
+        );
+
+        $memberToken = $this->postJson('/api/auth/login', [
+            'email' => 'onlymember@example.com',
+            'password' => 'password123',
+        ])->json('data.token');
+
+        /** @var User $another */
+        $another = $commands->dispatch(
+            new CreateUserCommand(email: 'another@example.com', name: 'Another'),
+        );
+
+        $this->withToken($memberToken)->postJson(
+            '/api/organizations/'.$orgId.'/members',
+            [
+                'user_id' => (string) $another->id(),
+                'role' => 'member',
+            ],
+        )->assertForbidden();
+    }
 }
