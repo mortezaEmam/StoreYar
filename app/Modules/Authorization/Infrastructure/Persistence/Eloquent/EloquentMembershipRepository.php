@@ -128,4 +128,12 @@ final class EloquentMembershipRepository implements MembershipRepository
             version: (int) $model->version,
         );
     }
+
+
+    public function delete(Membership $membership): void
+    {
+        MembershipModel::query()
+            ->whereKey($membership->membershipId()->value())
+            ->delete();
+    }
 }

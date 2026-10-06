@@ -33,5 +33,10 @@ Route::middleware('auth.session')->group(function (): void {
         Route::post('/{id}/members', [MembershipController::class, 'store'])
             ->middleware('throttle:20,1');
     });
+
+    Route::middleware('org.member:owner')->group(function (): void {
+        Route::patch('/{id}/members/{userId}', [MembershipController::class, 'update']);
+        Route::delete('/{id}/members/{userId}', [MembershipController::class, 'destroy']);
+    });
 });
 

@@ -598,4 +598,86 @@ final class OrganizationApiTest extends TestCase
             ],
         )->assertForbidden();
     }
+
+
+    public function test_owner_can_change_member_role(): void
+    {
+        $token = $this->authenticatedToken();
+
+        $org = $this->withToken($token)->postJson('/api/organizations', [
+            'name' => 'Role Shop',
+        ])->assertCreated();
+
+        $orgId = $org->json('data.id');
+
+        $commands = $this->app->make(CommandBus::class);
+        $user = $commands->dispatch(
+            new CreateUserCommand(email: 'roleuser@example.com', name: 'Role User'),
+        );
+        $userId = (string) $user->id();
+
+        $this->withToken($token)->postJson('/api/organizations/'.$orgId.'/members', [
+            'user_id' => $userId,
+            'role' => 'member',
+        ])->assertCreated();
+
+        $this->withToken($token)->patchJson(
+            '/api/organizations/'.$orgId.'/members/'.$userId,
+            ['role' => 'admin'],
+        )->assertOk()
+            ->assertJsonPath('data.role', 'admin');
+    }
+
+    public function test_owner_can_revoke_member(): void
+    {
+        $token = $this->authenticatedToken();
+
+        $org = $this->withToken($token)->postJson('/api/organizations', [
+            'name' => 'Revoke Shop',
+        ])->assertCreated();
+
+        $orgId = $org->json('data.id');
+
+        $commands = $this->app->make(CommandBus::class);
+        $user = $commands->dispatch(
+            new CreateUserCommand(email: 'revokeuser@example.com', name: 'Revoke User'),
+        );
+        $userId = (string) $user->id();
+
+        $this->withToken($token)->postJson('/api/organizations/'.$orgId.'/members', [
+            'user_id' => $userId,
+            'role' => 'member',
+        ])->assertCreated();
+
+//        $this->withToken($token)
+//            ->deleteJson('/api/organizations/'.$orgId.'/members/'.$userId)
+//            ->assertNoContent();
+
+        $response = $this->withToken($token)
+            ->deleteJson('/api/organizations/'.$orgId.'/members/'.$userId);
+
+        $response->assertStatus(204);
+
+        $this->withToken($token)
+            ->getJson('/api/organizations/'.$orgId.'/members')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+    }
+
+    public function test_cannot_revoke_last_owner(): void
+    {
+        $token = $this->authenticatedToken();
+
+        $org = $this->withToken($token)->postJson('/api/organizations', [
+            'name' => 'Solo Owner Shop',
+        ])->assertCreated();
+
+        $orgId = $org->json('data.id');
+        $ownerId = $org->json('data.owner_user_id');
+
+        // تلاش برای حذف خود
+        $this->withToken($token)
+            ->deleteJson('/api/organizations/'.$orgId.'/members/'.$ownerId)
+            ->assertStatus(422);
+    }
 }
