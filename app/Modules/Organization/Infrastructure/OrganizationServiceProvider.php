@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace StoreYar\Modules\Organization\Infrastructure;
 
 use Illuminate\Support\ServiceProvider;
+use StoreYar\Modules\Authorization\Application\Commands\ChangeMemberRole\ChangeMemberRoleCommand;
+use StoreYar\Modules\Authorization\Application\Commands\ChangeMemberRole\ChangeMemberRoleHandler;
+use StoreYar\Modules\Authorization\Application\Commands\RevokeMembership\RevokeMembershipCommand;
+use StoreYar\Modules\Authorization\Application\Commands\RevokeMembership\RevokeMembershipHandler;
 use StoreYar\Modules\Authorization\Application\Queries\ListMembersByOrganization\ListMembersByOrganizationHandler;
 use StoreYar\Modules\Authorization\Application\Queries\ListMembersByOrganization\ListMembersByOrganizationQuery;
 use StoreYar\Modules\Organization\Application\Commands\ActivateOrganization\ActivateOrganizationCommand;
@@ -90,5 +94,9 @@ final class OrganizationServiceProvider extends ServiceProvider
             ListMembersByOrganizationQuery::class,
             ListMembersByOrganizationHandler::class,
         );
+
+
+        $registry->register(ChangeMemberRoleCommand::class, ChangeMemberRoleHandler::class);
+        $registry->register(RevokeMembershipCommand::class, RevokeMembershipHandler::class);
     }
 }
