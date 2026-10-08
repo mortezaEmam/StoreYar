@@ -25,7 +25,6 @@ final class EnsureOrganizationMembership
 
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-
         if (count($roles) === 1 && str_contains($roles[0], ',')) {
             $roles = array_map('trim', explode(',', $roles[0]));
         }
@@ -43,8 +42,15 @@ final class EnsureOrganizationMembership
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        $organizationId = $request->route('id')
-            ?? $request->header('X-Business-Id');
+        // اولویت با X-Business-Id تا route paramهایی مثل /products/{id}
+        // به‌اشتباه به‌عنوان organizationId تفسیر نشوند.
+        $headerBusinessId = $request->header('X-Business-Id');
+
+        if ($headerBusinessId !== null && $headerBusinessId !== '') {
+            $organizationId = $headerBusinessId;
+        } else {
+            $organizationId = $request->route('id');
+        }
 
         if ($organizationId === null || $organizationId === '') {
             return response()->json([
