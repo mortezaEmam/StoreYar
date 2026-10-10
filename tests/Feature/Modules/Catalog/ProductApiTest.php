@@ -293,4 +293,29 @@ final class ProductApiTest extends TestCase
             ->postJson('/api/products/'.$id.'/activate')
             ->assertStatus(422);
     }
+
+
+    public function test_rename_product(): void
+    {
+        $ctx = $this->authenticatedOwnerContext();
+
+        $created = $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->postJson('/api/products', [
+                'name' => 'Old Name',
+                'sku' => 'SKU-REN',
+            ])
+            ->assertCreated();
+
+        $id = $created->json('data.id');
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->patchJson('/api/products/'.$id, [
+                'name' => 'New Name',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.name', 'New Name')
+            ->assertJsonPath('data.sku', 'SKU-REN');
+    }
 }

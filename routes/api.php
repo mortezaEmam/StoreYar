@@ -27,3 +27,13 @@ Route::middleware(['auth.session', 'business.context'])->group(function (): void
 Route::middleware(['auth.session', 'business.context', 'org.member'])
     ->prefix('products')
     ->group(base_path('app/Modules/Catalog/Presentation/routes.php'));
+
+
+
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('stock')
+    ->group(base_path('app/Modules/Inventory/Presentation/routes.php'));
+
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('orders')
+    ->group(base_path('app/Modules/Sales/Presentation/routes.php'));

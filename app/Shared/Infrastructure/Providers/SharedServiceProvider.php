@@ -12,11 +12,13 @@ use StoreYar\Shared\Application\Context\CurrentBusinessContext;
 use StoreYar\Shared\Application\Contracts\Messaging\InboxStore;
 use StoreYar\Shared\Application\Contracts\Messaging\OutboxStore;
 use StoreYar\Shared\Domain\Contracts\LockManager;
+use StoreYar\Shared\Domain\Contracts\Outbox;
 use StoreYar\Shared\Infrastructure\Concurrency\LaravelLockManager;
 use StoreYar\Shared\Infrastructure\Messaging\DatabaseInboxStore;
 use StoreYar\Shared\Infrastructure\Messaging\DatabaseOutboxStore;
 use StoreYar\Shared\Application\Contracts\Idempotency\IdempotencyStore;
 use StoreYar\Shared\Infrastructure\Idempotency\DatabaseIdempotencyStore;
+use StoreYar\Shared\Infrastructure\Outbox\EloquentOutbox;
 
 final class SharedServiceProvider extends ServiceProvider
 {
@@ -55,5 +57,7 @@ final class SharedServiceProvider extends ServiceProvider
                 );
             },
         );
+
+        $this->app->singleton(Outbox::class, EloquentOutbox::class);
     }
 }

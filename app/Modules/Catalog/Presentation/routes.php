@@ -13,3 +13,5 @@ Route::get('/{id}', [ProductController::class, 'show']);
 
 Route::post('/{id}/activate', [ProductController::class, 'activate']);
 Route::post('/{id}/archive', [ProductController::class, 'archive']);
+
+Route::patch('/{id}', [ProductController::class, 'rename']);

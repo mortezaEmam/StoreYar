@@ -11,6 +11,8 @@ use StoreYar\Modules\Catalog\Application\Commands\ArchiveProduct\ArchiveProductC
 use StoreYar\Modules\Catalog\Application\Commands\ArchiveProduct\ArchiveProductHandler;
 use StoreYar\Modules\Catalog\Application\Commands\CreateProduct\CreateProductCommand;
 use StoreYar\Modules\Catalog\Application\Commands\CreateProduct\CreateProductHandler;
+use StoreYar\Modules\Catalog\Application\Commands\RenameProduct\RenameProductCommand;
+use StoreYar\Modules\Catalog\Application\Commands\RenameProduct\RenameProductHandler;
 use StoreYar\Modules\Catalog\Application\Queries\GetProductById\GetProductByIdHandler;
 use StoreYar\Modules\Catalog\Application\Queries\GetProductById\GetProductByIdQuery;
 use StoreYar\Modules\Catalog\Application\Queries\ListProductsByOrganization\ListProductsByOrganizationHandler;
@@ -45,6 +47,12 @@ final class CatalogServiceProvider extends ServiceProvider
             ArchiveProductCommand::class,
             ArchiveProductHandler::class,
         );
+
+        $registry->register(
+            RenameProductCommand::class,
+            RenameProductHandler::class,
+        );
+
 
         $queryRegistry = $this->app->make(QueryHandlerRegistry::class);
 
