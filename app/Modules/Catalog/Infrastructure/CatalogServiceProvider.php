@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace StoreYar\Modules\Catalog\Infrastructure;
 
 use Illuminate\Support\ServiceProvider;
+use StoreYar\Modules\Catalog\Application\Commands\ActivateProduct\ActivateProductCommand;
+use StoreYar\Modules\Catalog\Application\Commands\ActivateProduct\ActivateProductHandler;
+use StoreYar\Modules\Catalog\Application\Commands\ArchiveProduct\ArchiveProductCommand;
+use StoreYar\Modules\Catalog\Application\Commands\ArchiveProduct\ArchiveProductHandler;
 use StoreYar\Modules\Catalog\Application\Commands\CreateProduct\CreateProductCommand;
 use StoreYar\Modules\Catalog\Application\Commands\CreateProduct\CreateProductHandler;
 use StoreYar\Modules\Catalog\Application\Queries\GetProductById\GetProductByIdHandler;
@@ -25,11 +29,22 @@ final class CatalogServiceProvider extends ServiceProvider
             EloquentProductRepository::class,
         );
 
-        $this->app->make(CommandHandlerRegistry::class)->register(
+        $registry = $this->app->make(CommandHandlerRegistry::class);
+
+        $registry->register(
             CreateProductCommand::class,
             CreateProductHandler::class,
         );
 
+        $registry->register(
+            ActivateProductCommand::class,
+            ActivateProductHandler::class,
+        );
+
+        $registry->register(
+            ArchiveProductCommand::class,
+            ArchiveProductHandler::class,
+        );
 
         $queryRegistry = $this->app->make(QueryHandlerRegistry::class);
 

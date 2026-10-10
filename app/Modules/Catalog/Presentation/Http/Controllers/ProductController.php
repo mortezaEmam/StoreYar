@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace StoreYar\Modules\Catalog\Presentation\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
+use StoreYar\Modules\Catalog\Application\Commands\ActivateProduct\ActivateProductCommand;
+use StoreYar\Modules\Catalog\Application\Commands\ArchiveProduct\ArchiveProductCommand;
 use StoreYar\Modules\Catalog\Application\Commands\CreateProduct\CreateProductCommand;
 use StoreYar\Modules\Catalog\Application\Queries\GetProductById\GetProductByIdQuery;
 use StoreYar\Modules\Catalog\Application\Queries\ListProductsByOrganization\ListProductsByOrganizationQuery;
@@ -81,6 +83,46 @@ final class ProductController
             return response()->json([
                 'message' => $e->getMessage(),
             ], 422);
+        }
+    }
+
+    public function activate(string $id): JsonResponse
+    {
+        try {
+            /** @var Product $product */
+            $product = $this->commands->dispatch(
+                new ActivateProductCommand(
+                    productId: $id,
+                    organizationId: $this->business->businessId(),
+                ),
+            );
+
+            return (new ProductResource($product))->response();
+        } catch (\InvalidArgumentException $e) {
+            $status = $e->getMessage() === 'Product not found.' ? 404 : 422;
+
+            return response()->json(['message' => $e->getMessage()], $status);
+        } catch (\LogicException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function archive(string $id): JsonResponse
+    {
+        try {
+            /** @var Product $product */
+            $product = $this->commands->dispatch(
+                new ArchiveProductCommand(
+                    productId: $id,
+                    organizationId: $this->business->businessId(),
+                ),
+            );
+
+            return (new ProductResource($product))->response();
+        } catch (\InvalidArgumentException $e) {
+            $status = $e->getMessage() === 'Product not found.' ? 404 : 422;
+
+            return response()->json(['message' => $e->getMessage()], $status);
         }
     }
 }

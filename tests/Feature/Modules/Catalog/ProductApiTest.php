@@ -236,4 +236,61 @@ final class ProductApiTest extends TestCase
             ->getJson('/api/products/'.$productId)
             ->assertNotFound();
     }
+
+
+    public function test_activate_and_archive_product(): void
+    {
+        $ctx = $this->authenticatedOwnerContext();
+
+        $created = $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->postJson('/api/products', [
+                'name' => 'Lifecycle Product',
+                'sku' => 'SKU-LIFE',
+            ])
+            ->assertCreated();
+
+        $id = $created->json('data.id');
+
+        $this->assertSame('draft', $created->json('data.status'));
+
+        $activated = $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->postJson('/api/products/'.$id.'/activate');
+
+        $activated->assertOk()
+            ->assertJsonPath('data.status', 'active');
+
+        $archived = $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->postJson('/api/products/'.$id.'/archive');
+
+        $archived->assertOk()
+            ->assertJsonPath('data.status', 'archived');
+    }
+
+    public function test_cannot_activate_archived_product(): void
+    {
+        $ctx = $this->authenticatedOwnerContext();
+
+        $created = $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->postJson('/api/products', [
+                'name' => 'Archived First',
+                'sku' => 'SKU-ARCH',
+            ])
+            ->assertCreated();
+
+        $id = $created->json('data.id');
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->postJson('/api/products/'.$id.'/archive')
+            ->assertOk();
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->postJson('/api/products/'.$id.'/activate')
+            ->assertStatus(422);
+    }
 }
