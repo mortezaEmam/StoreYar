@@ -18,6 +18,8 @@ final class CreateProductRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'sku' => ['required', 'string', 'max:64'],
+            'unit_price_amount' => ['required', 'integer', 'min:0'],
+            'currency' => ['sometimes', 'string', 'size:3'],
         ];
     }
 }

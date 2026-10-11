@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use Closure;
 use Illuminate\Support\ServiceProvider;
 use StoreYar\Shared\Application\Bus\Command\CommandBus;
 use StoreYar\Shared\Application\Bus\Command\CommandHandlerMap;
@@ -21,8 +22,14 @@ use StoreYar\Shared\Application\Bus\Query\QueryHandlerRegistry;
 use StoreYar\Shared\Application\Bus\Query\QueryHandlerResolver;
 use StoreYar\Shared\Application\Context\BusinessContext;
 use StoreYar\Shared\Application\Context\CurrentBusinessContext;
+use StoreYar\Shared\Application\Outbox\OutboxEventPublisher;
+use StoreYar\Shared\Application\Outbox\OutboxProcessor;
 use StoreYar\Shared\Domain\Contracts\Clock;
+use StoreYar\Shared\Domain\Contracts\Outbox;
 use StoreYar\Shared\Infrastructure\Clock\SystemClock;
+use StoreYar\Shared\Infrastructure\Outbox\EloquentOutbox;
+use StoreYar\Shared\Infrastructure\Outbox\LogOutboxEventPublisher;
+use StoreYar\Shared\Presentation\Console\PublishOutboxCommand;
 
 final class SharedServiceProvider extends ServiceProvider
 {
@@ -85,5 +92,21 @@ final class SharedServiceProvider extends ServiceProvider
             BusinessContext::class,
             fn ($app) => $app->make(CurrentBusinessContext::class),
         );
+
+        $this->app->singleton(Outbox::class, EloquentOutbox::class);
+        $this->app->singleton(OutboxEventPublisher::class, LogOutboxEventPublisher::class);
+        $this->app->singleton(OutboxProcessor::class);
+    }
+
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                PublishOutboxCommand::class,
+            ]);
+        }
     }
 }

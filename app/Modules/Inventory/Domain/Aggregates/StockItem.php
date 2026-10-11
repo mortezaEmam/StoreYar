@@ -8,6 +8,8 @@ use DateTimeImmutable;
 use StoreYar\Modules\Inventory\Domain\Exceptions\InsufficientStock;
 use StoreYar\Modules\Inventory\Domain\ValueObjects\StockItemId;
 use StoreYar\Shared\Domain\Aggregates\AggregateRoot;
+use StoreYar\Modules\Inventory\Domain\Events\StockAdjusted;
+use StoreYar\Modules\Inventory\Domain\Events\StockInitialized;
 
 final class StockItem extends AggregateRoot
 {
@@ -43,7 +45,8 @@ final class StockItem extends AggregateRoot
             throw new \InvalidArgumentException('Quantity cannot be negative.');
         }
 
-        return new self(
+
+        $item = new self(
             stockItemId: $id,
             organizationId: $organizationId,
             productId: $productId,
@@ -51,6 +54,18 @@ final class StockItem extends AggregateRoot
             createdAt: $now,
             updatedAt: $now,
         );
+
+        $item->recordEvent(
+            new StockInitialized(
+                stockItemId: $item->id(),
+                organizationId: $organizationId,
+                productId: $productId,
+                quantity: $quantity,
+                occurredAt: $now,
+            ),
+        );
+
+        return $item;
     }
 
     public static function reconstitute(
@@ -85,6 +100,18 @@ final class StockItem extends AggregateRoot
         $this->quantity += $amount;
         $this->updatedAt = $now;
         $this->version++;
+
+        $this->recordEvent(
+            new StockAdjusted(
+                stockItemId: $this->id(),
+                organizationId: $this->organizationId,
+                productId: $this->productId,
+                direction: 'increase',
+                amount: $amount,
+                quantityAfter: $this->quantity,
+                occurredAt: $now,
+            ),
+        );
     }
 
     public function decrease(int $amount, DateTimeImmutable $now): void
@@ -100,8 +127,19 @@ final class StockItem extends AggregateRoot
         $this->quantity -= $amount;
         $this->updatedAt = $now;
         $this->version++;
-    }
 
+        $this->recordEvent(
+            new StockAdjusted(
+                stockItemId: $this->id(),
+                organizationId: $this->organizationId,
+                productId: $this->productId,
+                direction: 'decrease',
+                amount: $amount,
+                quantityAfter: $this->quantity,
+                occurredAt: $now,
+            ),
+        );
+    }
     public function stockItemId(): StockItemId
     {
         return $this->stockItemId;

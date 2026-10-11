@@ -13,7 +13,5 @@ final readonly class AddOrderLineCommand implements Command
         public string $organizationId,
         public string $productId,
         public int $quantity,
-        public int $unitPriceAmount,
-        public string $currency = 'IRR',
     ) {}
 }

@@ -29,13 +29,17 @@ final class ProductTest extends TestCase
             organizationId: '01JORG00000000000000000001',
             name: 'Sample Product',
             sku: 'SKU-001',
+            unitPriceAmount: 5000,
             now: $now,
+            currency: 'IRR',
         );
 
         self::assertSame($id->value(), $product->id());
         self::assertSame('01JORG00000000000000000001', $product->organizationId());
         self::assertSame('Sample Product', $product->name());
         self::assertSame('SKU-001', $product->sku());
+        self::assertSame(5000, $product->unitPriceAmount());
+        self::assertSame('IRR', $product->currency());
         self::assertSame(ProductStatus::DRAFT, $product->status());
         self::assertSame(0, $product->version());
         self::assertSame($now, $product->createdAt());
@@ -48,6 +52,7 @@ final class ProductTest extends TestCase
             organizationId: '01JORG00000000000000000001',
             name: 'Sample Product',
             sku: 'SKU-001',
+            unitPriceAmount: 5000,
             now: $this->now(),
         );
 
@@ -67,6 +72,7 @@ final class ProductTest extends TestCase
             organizationId: '01JORG00000000000000000001',
             name: 'Sample Product',
             sku: 'SKU-001',
+            unitPriceAmount: 5000,
             now: $this->now(),
         );
 
@@ -93,6 +99,7 @@ final class ProductTest extends TestCase
             organizationId: '01JORG00000000000000000001',
             name: '   ',
             sku: 'SKU-001',
+            unitPriceAmount: 5000,
             now: $this->now(),
         );
     }
@@ -106,6 +113,7 @@ final class ProductTest extends TestCase
             organizationId: '01JORG00000000000000000001',
             name: 'Sample Product',
             sku: '',
+            unitPriceAmount: 5000,
             now: $this->now(),
         );
     }
@@ -117,6 +125,7 @@ final class ProductTest extends TestCase
             organizationId: '01JORG00000000000000000001',
             name: 'Sample Product',
             sku: 'SKU-001',
+            unitPriceAmount: 5000,
             now: $this->now(),
         );
 
@@ -125,5 +134,23 @@ final class ProductTest extends TestCase
 
         $this->expectException(\LogicException::class);
         $product->activate($now->modify('+1 hour'));
+    }
+
+    public function test_it_changes_price(): void
+    {
+        $product = Product::create(
+            id: ProductId::generate(),
+            organizationId: '01JORG00000000000000000001',
+            name: 'Sample Product',
+            sku: 'SKU-001',
+            unitPriceAmount: 1000,
+            now: $this->now(),
+        );
+
+        $product->pullDomainEvents();
+        $product->changePrice(2500, 'IRR', $this->now()->modify('+1 hour'));
+
+        self::assertSame(2500, $product->unitPriceAmount());
+        self::assertSame(1, $product->version());
     }
 }

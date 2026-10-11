@@ -21,6 +21,8 @@ final class ProductResource extends JsonResource
             'organization_id' => $product->organizationId(),
             'name' => $product->name(),
             'sku' => $product->sku(),
+            'unit_price_amount' => $product->unitPriceAmount(),
+            'currency' => $product->currency(),
             'status' => $product->status()->value,
             'created_at' => $product->createdAt()->format(\DateTimeInterface::ATOM),
             'updated_at' => $product->updatedAt()->format(\DateTimeInterface::ATOM),

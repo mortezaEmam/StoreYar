@@ -19,6 +19,8 @@ final class ProductModel extends Model
         'organization_id',
         'name',
         'sku',
+        'unit_price_amount',
+        'currency',
         'status',
         'version',
     ];
@@ -26,6 +28,7 @@ final class ProductModel extends Model
     protected function casts(): array
     {
         return [
+            'unit_price_amount' => 'integer',
             'version' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',

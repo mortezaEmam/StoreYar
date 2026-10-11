@@ -18,8 +18,6 @@ final class AddOrderLineRequest extends FormRequest
         return [
             'product_id' => ['required', 'string', 'size:26'],
             'quantity' => ['required', 'integer', 'min:1'],
-            'unit_price_amount' => ['required', 'integer', 'min:0'],
-            'currency' => ['sometimes', 'string', 'size:3'],
         ];
     }
 }

@@ -9,6 +9,8 @@ use StoreYar\Modules\Catalog\Application\Commands\ActivateProduct\ActivateProduc
 use StoreYar\Modules\Catalog\Application\Commands\ActivateProduct\ActivateProductHandler;
 use StoreYar\Modules\Catalog\Application\Commands\ArchiveProduct\ArchiveProductCommand;
 use StoreYar\Modules\Catalog\Application\Commands\ArchiveProduct\ArchiveProductHandler;
+use StoreYar\Modules\Catalog\Application\Commands\ChangeProductPrice\ChangeProductPriceCommand;
+use StoreYar\Modules\Catalog\Application\Commands\ChangeProductPrice\ChangeProductPriceHandler;
 use StoreYar\Modules\Catalog\Application\Commands\CreateProduct\CreateProductCommand;
 use StoreYar\Modules\Catalog\Application\Commands\CreateProduct\CreateProductHandler;
 use StoreYar\Modules\Catalog\Application\Commands\RenameProduct\RenameProductCommand;
@@ -53,6 +55,10 @@ final class CatalogServiceProvider extends ServiceProvider
             RenameProductHandler::class,
         );
 
+        $registry->register(
+            ChangeProductPriceCommand::class,
+            ChangeProductPriceHandler::class,
+        );
 
         $queryRegistry = $this->app->make(QueryHandlerRegistry::class);
 

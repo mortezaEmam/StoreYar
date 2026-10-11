@@ -11,7 +11,11 @@ Route::post('/', [ProductController::class, 'store'])
     ->middleware('throttle:30,1');
 Route::get('/{id}', [ProductController::class, 'show']);
 
+
 Route::post('/{id}/activate', [ProductController::class, 'activate']);
+
+Route::patch('/{id}/price', [ProductController::class, 'changePrice']);
+
 Route::post('/{id}/archive', [ProductController::class, 'archive']);
 
 Route::patch('/{id}', [ProductController::class, 'rename']);

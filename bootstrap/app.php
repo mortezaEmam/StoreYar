@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use StoreYar\Modules\Authorization\Presentation\Http\Middleware\EnsureOrganizationMembership;
 use StoreYar\Modules\Identity\Presentation\Http\Middleware\AuthenticateSession;
 use StoreYar\Modules\Organization\Presentation\Http\Middleware\SetBusinessContext;
+use StoreYar\Shared\Presentation\Console\PublishOutboxCommand;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -26,4 +27,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn(Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
-    })->create();
+    })
+
+    ->withCommands([
+        PublishOutboxCommand::class,
+    ])
+    ->create();

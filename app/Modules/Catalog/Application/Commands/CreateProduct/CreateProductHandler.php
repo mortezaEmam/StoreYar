@@ -1,6 +1,7 @@
 <?php
 
-// CreateProductHandler.php
+declare(strict_types=1);
+
 namespace StoreYar\Modules\Catalog\Application\Commands\CreateProduct;
 
 use StoreYar\Modules\Catalog\Domain\Aggregates\Product;
@@ -38,7 +39,9 @@ final class CreateProductHandler implements CommandHandler
             organizationId: $command->organizationId,
             name: $command->name,
             sku: $command->sku,
+            unitPriceAmount: $command->unitPriceAmount,
             now: $this->clock->now(),
+            currency: $command->currency,
         );
 
         $this->products->save($product);

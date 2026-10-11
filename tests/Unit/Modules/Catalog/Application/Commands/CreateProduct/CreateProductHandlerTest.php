@@ -39,12 +39,15 @@ final class CreateProductHandlerTest extends TestCase
                 organizationId: '01JORG00000000000000000001',
                 name: 'Sample Product',
                 sku: 'SKU-001',
+                unitPriceAmount: 5000,
+                currency: 'IRR',
             ),
         );
 
         self::assertInstanceOf(Product::class, $product);
         self::assertSame('Sample Product', $product->name());
         self::assertSame('SKU-001', $product->sku());
+        self::assertSame(5000, $product->unitPriceAmount());
         self::assertSame(ProductStatus::DRAFT, $product->status());
     }
 
@@ -55,6 +58,8 @@ final class CreateProductHandlerTest extends TestCase
             organizationId: '01JORG00000000000000000001',
             name: 'Existing',
             sku: 'SKU-001',
+            unitPriceAmount: 1000,
+            currency: 'IRR',
             status: ProductStatus::DRAFT,
             createdAt: new DateTimeImmutable('now', new DateTimeZone('UTC')),
             updatedAt: new DateTimeImmutable('now', new DateTimeZone('UTC')),
@@ -76,6 +81,7 @@ final class CreateProductHandlerTest extends TestCase
                 organizationId: '01JORG00000000000000000001',
                 name: 'Another Product',
                 sku: 'SKU-001',
+                unitPriceAmount: 2000,
             ),
         );
     }

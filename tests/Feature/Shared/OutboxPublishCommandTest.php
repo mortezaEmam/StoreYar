@@ -44,7 +44,12 @@ final class OutboxPublishCommandTest extends TestCase
 
         $productId = $this->withToken($token)
             ->withHeader('X-Business-Id', $orgId)
-            ->postJson('/api/products', ['name' => 'P', 'sku' => 'SKU-OB-1'])
+            ->postJson('/api/products', [
+                'name' => 'Sample',
+                'sku' => 'SKU-001',
+                'unit_price_amount' => 5000,
+                'currency' => 'IRR',
+            ])
             ->json('data.id');
 
         $this->withToken($token)

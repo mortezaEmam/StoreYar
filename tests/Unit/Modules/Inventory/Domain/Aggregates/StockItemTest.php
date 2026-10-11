@@ -34,6 +34,13 @@ final class StockItemTest extends TestCase
         self::assertSame($id->value(), $item->id());
         self::assertSame(10, $item->quantity());
         self::assertSame(0, $item->version());
+
+        $events = $item->pullDomainEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(
+            \StoreYar\Modules\Inventory\Domain\Events\StockInitialized::class,
+            $events[0],
+        );
     }
 
     public function test_it_increases_and_decreases(): void
@@ -48,6 +55,13 @@ final class StockItemTest extends TestCase
 
         $later = $this->now()->modify('+1 hour');
         $item->increase(5, $later);
+
+        $events = $item->pullDomainEvents();
+        self::assertInstanceOf(
+            \StoreYar\Modules\Inventory\Domain\Events\StockAdjusted::class,
+            $events[0],
+        );
+        self::assertSame('increase', $events[0]->direction());
         self::assertSame(15, $item->quantity());
         self::assertSame(1, $item->version());
 

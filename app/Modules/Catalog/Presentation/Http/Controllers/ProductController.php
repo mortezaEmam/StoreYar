@@ -7,12 +7,14 @@ namespace StoreYar\Modules\Catalog\Presentation\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use StoreYar\Modules\Catalog\Application\Commands\ActivateProduct\ActivateProductCommand;
 use StoreYar\Modules\Catalog\Application\Commands\ArchiveProduct\ArchiveProductCommand;
+use StoreYar\Modules\Catalog\Application\Commands\ChangeProductPrice\ChangeProductPriceCommand;
 use StoreYar\Modules\Catalog\Application\Commands\CreateProduct\CreateProductCommand;
 use StoreYar\Modules\Catalog\Application\Commands\RenameProduct\RenameProductCommand;
 use StoreYar\Modules\Catalog\Application\Queries\GetProductById\GetProductByIdQuery;
 use StoreYar\Modules\Catalog\Application\Queries\ListProductsByOrganization\ListProductsByOrganizationQuery;
 use StoreYar\Modules\Catalog\Domain\Aggregates\Product;
 use StoreYar\Modules\Catalog\Domain\Exceptions\ProductSkuAlreadyExists;
+use StoreYar\Modules\Catalog\Presentation\Http\Requests\ChangeProductPriceRequest;
 use StoreYar\Modules\Catalog\Presentation\Http\Requests\CreateProductRequest;
 use StoreYar\Modules\Catalog\Presentation\Http\Requests\RenameProductRequest;
 use StoreYar\Modules\Catalog\Presentation\Http\Resources\ProductResource;
@@ -75,6 +77,8 @@ final class ProductController
                     organizationId: $this->business->businessId(),
                     name: $request->string('name')->toString(),
                     sku: $request->string('sku')->toString(),
+                    unitPriceAmount: $request->integer('unit_price_amount'),
+                    currency: $request->input('currency', 'IRR'),
                 ),
             );
 
@@ -82,9 +86,28 @@ final class ProductController
                 ->response()
                 ->setStatusCode(201);
         } catch (ProductSkuAlreadyExists|\InvalidArgumentException $e) {
-            return response()->json([
-                'message' => $e->getMessage(),
-            ], 422);
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function changePrice(ChangeProductPriceRequest $request, string $id): JsonResponse
+    {
+        try {
+            /** @var Product $product */
+            $product = $this->commands->dispatch(
+                new ChangeProductPriceCommand(
+                    productId: $id,
+                    organizationId: $this->business->businessId(),
+                    unitPriceAmount: $request->integer('unit_price_amount'),
+                    currency: $request->input('currency', 'IRR'),
+                ),
+            );
+
+            return (new ProductResource($product))->response();
+        } catch (\InvalidArgumentException $e) {
+            $status = $e->getMessage() === 'Product not found.' ? 404 : 422;
+
+            return response()->json(['message' => $e->getMessage()], $status);
         }
     }
 

@@ -51,8 +51,10 @@ final class OrderApiTest extends TestCase
         $productId = $this->withToken($token)
             ->withHeader('X-Business-Id', $orgId)
             ->postJson('/api/products', [
-                'name' => 'Sellable',
-                'sku' => 'SKU-SALE-1',
+                'name' => 'Sample',
+                'sku' => 'SKU-001',
+                'unit_price_amount' => 5000,
+                'currency' => 'IRR',
             ])
             ->assertCreated()
             ->json('data.id');

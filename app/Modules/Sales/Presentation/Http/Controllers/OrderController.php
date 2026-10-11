@@ -93,8 +93,6 @@ final class OrderController
                     organizationId: $this->business->businessId(),
                     productId: $request->string('product_id')->toString(),
                     quantity: $request->integer('quantity'),
-                    unitPriceAmount: $request->integer('unit_price_amount'),
-                    currency: $request->input('currency', 'IRR'),
                 ),
             );
 

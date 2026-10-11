@@ -36,17 +36,19 @@ final class AddOrderLineHandler implements CommandHandler
             throw new \InvalidArgumentException('Order not found.');
         }
 
-        if (! $this->products->existsInOrganization(
+        $pricing = $this->products->pricingFor(
             $command->organizationId,
             $command->productId,
-        )) {
+        );
+
+        if ($pricing === null) {
             throw new ProductNotFoundForOrder($command->productId);
         }
 
         $order->addLine(
             productId: $command->productId,
             quantity: $command->quantity,
-            unitPrice: Money::of($command->unitPriceAmount, $command->currency),
+            unitPrice: Money::of($pricing->unitPriceAmount, $pricing->currency),
             now: $this->clock->now(),
         );
 

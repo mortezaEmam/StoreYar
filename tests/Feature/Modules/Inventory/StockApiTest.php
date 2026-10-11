@@ -51,8 +51,10 @@ final class StockApiTest extends TestCase
         $product = $this->withToken($token)
             ->withHeader('X-Business-Id', $orgId)
             ->postJson('/api/products', [
-                'name' => 'Stocked Product',
-                'sku' => 'SKU-STOCK-1',
+                'name' => 'Sample',
+                'sku' => 'SKU-001',
+                'unit_price_amount' => 5000,
+                'currency' => 'IRR',
             ])
             ->assertCreated();
 
@@ -243,5 +245,53 @@ final class StockApiTest extends TestCase
             ->withHeader('X-Business-Id', $ctx['organization_id'])
             ->getJson('/api/stock/'.(string) \Illuminate\Support\Str::ulid())
             ->assertNotFound();
+    }
+
+
+    public function test_initialize_stock_writes_outbox_event(): void
+    {
+        $ctx = $this->contextWithProduct();
+
+        $id = $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->postJson('/api/stock', [
+                'product_id' => $ctx['product_id'],
+                'quantity' => 5,
+            ])
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->assertDatabaseHas('shared_outbox', [
+            'aggregate_type' => 'inventory.stock_item',
+            'aggregate_id' => $id,
+        ]);
+    }
+
+    public function test_adjust_stock_writes_outbox_event(): void
+    {
+        $ctx = $this->contextWithProduct();
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->postJson('/api/stock', [
+                'product_id' => $ctx['product_id'],
+                'quantity' => 10,
+            ])
+            ->assertCreated();
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->postJson('/api/stock/'.$ctx['product_id'].'/adjust', [
+                'amount' => 2,
+                'direction' => 'increase',
+            ])
+            ->assertOk();
+
+        $this->assertTrue(
+            \StoreYar\Shared\Infrastructure\Persistence\Eloquent\OutboxModel::query()
+                ->where('aggregate_type', 'inventory.stock_item')
+                ->where('event_type', \StoreYar\Modules\Inventory\Domain\Events\StockAdjusted::class)
+                ->exists()
+        );
     }
 }
