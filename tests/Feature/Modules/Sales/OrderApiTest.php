@@ -8,8 +8,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use StoreYar\Modules\Identity\Application\Commands\CreateUser\CreateUserCommand;
 use StoreYar\Modules\Identity\Application\Commands\SetPassword\SetPasswordCommand;
 use StoreYar\Modules\Identity\Domain\Aggregates\User;
-use StoreYar\Modules\Inventory\Domain\Contracts\StockItemRepository;
 use StoreYar\Shared\Application\Bus\Command\CommandBus;
+use StoreYar\Shared\Infrastructure\Persistence\Eloquent\OutboxModel;
+use StoreYar\Modules\Sales\Domain\Events\OrderConfirmed;
 use Tests\TestCase;
 
 final class OrderApiTest extends TestCase
@@ -17,10 +18,15 @@ final class OrderApiTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * @return array{token: string, organization_id: string, product_id: string}
+     * @return array{
+     *     token: string,
+     *     organization_id: string,
+     *     product_id: string
+     * }
      */
-    private function contextWithProductAndStock(int $stockQty = 10): array
-    {
+    private function contextWithProductAndStock(
+        int $stockQty = 10,
+    ): array {
         $commands = $this->app->make(CommandBus::class);
 
         /** @var User $user */
@@ -41,10 +47,14 @@ final class OrderApiTest extends TestCase
         $token = $this->postJson('/api/auth/login', [
             'email' => 'sales@example.com',
             'password' => 'password123',
-        ])->json('data.token');
+        ])
+            ->assertOk()
+            ->json('data.token');
 
         $orgId = $this->withToken($token)
-            ->postJson('/api/organizations', ['name' => 'Sales Shop'])
+            ->postJson('/api/organizations', [
+                'name' => 'Sales Shop',
+            ])
             ->assertCreated()
             ->json('data.id');
 
@@ -74,6 +84,23 @@ final class OrderApiTest extends TestCase
         ];
     }
 
+    /**
+     * Confirm an order using a unique idempotency key.
+     */
+    private function confirmOrder(
+        string $token,
+        string $organizationId,
+        string $orderId,
+    ): \Illuminate\Testing\TestResponse {
+        return $this->withToken($token)
+            ->withHeader('X-Business-Id', $organizationId)
+            ->withHeader(
+                'Idempotency-Key',
+                'test-confirm-' . uniqid('', true),
+            )
+            ->postJson('/api/orders/' . $orderId . '/confirm');
+    }
+
     public function test_create_order_and_add_line(): void
     {
         $ctx = $this->contextWithProductAndStock();
@@ -88,7 +115,7 @@ final class OrderApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->postJson('/api/orders/'.$orderId.'/lines', [
+            ->postJson('/api/orders/' . $orderId . '/lines', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 2,
                 'unit_price_amount' => 5000,
@@ -105,26 +132,29 @@ final class OrderApiTest extends TestCase
         $orderId = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
             ->postJson('/api/orders')
+            ->assertCreated()
             ->json('data.id');
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->postJson('/api/orders/'.$orderId.'/lines', [
+            ->postJson('/api/orders/' . $orderId . '/lines', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 3,
                 'unit_price_amount' => 1000,
             ])
             ->assertOk();
 
-        $this->withToken($ctx['token'])
-            ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->postJson('/api/orders/'.$orderId.'/confirm')
+        $this->confirmOrder(
+            $ctx['token'],
+            $ctx['organization_id'],
+            $orderId,
+        )
             ->assertOk()
             ->assertJsonPath('data.status', 'confirmed');
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->getJson('/api/stock/'.$ctx['product_id'])
+            ->getJson('/api/stock/' . $ctx['product_id'])
             ->assertOk()
             ->assertJsonPath('data.quantity', 7);
     }
@@ -136,31 +166,33 @@ final class OrderApiTest extends TestCase
         $orderId = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
             ->postJson('/api/orders')
+            ->assertCreated()
             ->json('data.id');
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->postJson('/api/orders/'.$orderId.'/lines', [
+            ->postJson('/api/orders/' . $orderId . '/lines', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 5,
                 'unit_price_amount' => 1000,
             ])
             ->assertOk();
 
-        $this->withToken($ctx['token'])
-            ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->postJson('/api/orders/'.$orderId.'/confirm')
-            ->assertUnprocessable();
+        $this->confirmOrder(
+            $ctx['token'],
+            $ctx['organization_id'],
+            $orderId,
+        )->assertUnprocessable();
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->getJson('/api/orders/'.$orderId)
+            ->getJson('/api/orders/' . $orderId)
             ->assertOk()
             ->assertJsonPath('data.status', 'draft');
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->getJson('/api/stock/'.$ctx['product_id'])
+            ->getJson('/api/stock/' . $ctx['product_id'])
             ->assertOk()
             ->assertJsonPath('data.quantity', 2);
     }
@@ -172,6 +204,7 @@ final class OrderApiTest extends TestCase
         $orderId = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
             ->postJson('/api/orders')
+            ->assertCreated()
             ->json('data.id');
 
         $payload = [
@@ -182,12 +215,12 @@ final class OrderApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->postJson('/api/orders/'.$orderId.'/lines', $payload)
+            ->postJson('/api/orders/' . $orderId . '/lines', $payload)
             ->assertOk();
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->postJson('/api/orders/'.$orderId.'/lines', $payload)
+            ->postJson('/api/orders/' . $orderId . '/lines', $payload)
             ->assertUnprocessable();
     }
 
@@ -198,35 +231,36 @@ final class OrderApiTest extends TestCase
         $orderId = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
             ->postJson('/api/orders')
+            ->assertCreated()
             ->json('data.id');
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->postJson('/api/orders/'.$orderId.'/lines', [
+            ->postJson('/api/orders/' . $orderId . '/lines', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 4,
                 'unit_price_amount' => 1000,
             ])
             ->assertOk();
 
-        $this->withToken($ctx['token'])
-            ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->postJson('/api/orders/'.$orderId.'/confirm')
-            ->assertOk();
+        $this->confirmOrder(
+            $ctx['token'],
+            $ctx['organization_id'],
+            $orderId,
+        )->assertOk();
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->postJson('/api/orders/'.$orderId.'/cancel')
+            ->postJson('/api/orders/' . $orderId . '/cancel')
             ->assertOk()
             ->assertJsonPath('data.status', 'cancelled');
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->getJson('/api/stock/'.$ctx['product_id'])
+            ->getJson('/api/stock/' . $ctx['product_id'])
             ->assertOk()
             ->assertJsonPath('data.quantity', 10);
     }
-
 
     public function test_confirm_writes_outbox_events(): void
     {
@@ -235,21 +269,23 @@ final class OrderApiTest extends TestCase
         $orderId = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
             ->postJson('/api/orders')
+            ->assertCreated()
             ->json('data.id');
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->postJson('/api/orders/'.$orderId.'/lines', [
+            ->postJson('/api/orders/' . $orderId . '/lines', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 1,
                 'unit_price_amount' => 1000,
             ])
             ->assertOk();
 
-        $this->withToken($ctx['token'])
-            ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->postJson('/api/orders/'.$orderId.'/confirm')
-            ->assertOk();
+        $this->confirmOrder(
+            $ctx['token'],
+            $ctx['organization_id'],
+            $orderId,
+        )->assertOk();
 
         $this->assertDatabaseHas('shared_outbox', [
             'aggregate_type' => 'sales.order',
@@ -257,10 +293,10 @@ final class OrderApiTest extends TestCase
         ]);
 
         $this->assertTrue(
-            \StoreYar\Shared\Infrastructure\Persistence\Eloquent\OutboxModel::query()
+            OutboxModel::query()
                 ->where('aggregate_id', $orderId)
-                ->where('event_type', \StoreYar\Modules\Sales\Domain\Events\OrderConfirmed::class)
-                ->exists()
+                ->where('event_type', OrderConfirmed::class)
+                ->exists(),
         );
     }
 }

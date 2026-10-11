@@ -14,6 +14,7 @@ use StoreYar\Modules\Sales\Application\Commands\ConfirmOrder\ConfirmOrderCommand
 use StoreYar\Modules\Sales\Application\Commands\CreateOrder\CreateOrderCommand;
 use StoreYar\Modules\Sales\Application\Queries\GetOrderById\GetOrderByIdQuery;
 use StoreYar\Modules\Sales\Application\Queries\ListOrdersByOrganization\ListOrdersByOrganizationQuery;
+use StoreYar\Modules\Sales\Application\Services\ConfirmOrderIdempotently;
 use StoreYar\Modules\Sales\Domain\Aggregates\Order;
 use StoreYar\Modules\Sales\Domain\Exceptions\DuplicateOrderLine;
 use StoreYar\Modules\Sales\Domain\Exceptions\EmptyOrder;
@@ -25,6 +26,7 @@ use StoreYar\Modules\Sales\Presentation\Http\Resources\OrderResource;
 use StoreYar\Shared\Application\Bus\Command\CommandBus;
 use StoreYar\Shared\Application\Bus\Query\QueryBus;
 use StoreYar\Shared\Application\Context\BusinessContext;
+use StoreYar\Shared\Domain\Exceptions\IdempotencyConflictException;
 
 final class OrderController
 {
@@ -33,6 +35,7 @@ final class OrderController
         private QueryBus $queries,
         private BusinessContext $business,
         private SessionRepository $sessions,
+        private ConfirmOrderIdempotently $confirmOrderIdempotently,
     ) {}
 
     public function index(): JsonResponse
@@ -108,18 +111,35 @@ final class OrderController
         }
     }
 
-    public function confirm(string $id): JsonResponse
+    public function confirm(Request $request, string $id): JsonResponse
     {
+        $idempotencyKey = $request->header('Idempotency-Key');
+
+        if ($idempotencyKey === null || trim($idempotencyKey) === '') {
+            return response()->json([
+                'message' => 'Idempotency-Key header is required.',
+            ], 400);
+        }
+
+        if (strlen($idempotencyKey) > 128) {
+            return response()->json([
+                'message' => 'Idempotency-Key is too long.',
+            ], 400);
+        }
+
         try {
-            /** @var Order $order */
-            $order = $this->commands->dispatch(
-                new ConfirmOrderCommand(
-                    orderId: $id,
-                    organizationId: $this->business->businessId(),
-                ),
+            $result = $this->confirmOrderIdempotently->execute(
+                organizationId: $this->business->businessId(),
+                orderId: $id,
+                idempotencyKey: trim($idempotencyKey),
             );
 
-            return (new OrderResource($order))->response();
+            return (new OrderResource($result['order']))
+                ->response()
+                ->setStatusCode(200)
+                ->header('Idempotency-Replayed', $result['replayed'] ? 'true' : 'false');
+        } catch (IdempotencyConflictException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
         } catch (EmptyOrder|InvalidOrderState|InsufficientStockForOrder $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         } catch (\InvalidArgumentException $e) {

@@ -33,7 +33,9 @@ final class SalesServiceProvider extends ServiceProvider
         $this->app->singleton(OrderRepository::class, EloquentOrderRepository::class);
         $this->app->singleton(StockReservationService::class, InventoryStockReservationService::class);
         $this->app->singleton(ProductCatalogGateway::class, CatalogProductCatalogGateway::class);
-
+        $this->app->singleton(
+            \StoreYar\Modules\Sales\Application\Services\ConfirmOrderIdempotently::class,
+        );
         $commands = $this->app->make(CommandHandlerRegistry::class);
 
         $commands->register(CreateOrderCommand::class, CreateOrderHandler::class);
@@ -45,5 +47,7 @@ final class SalesServiceProvider extends ServiceProvider
 
         $queries->register(GetOrderByIdQuery::class, GetOrderByIdHandler::class);
         $queries->register(ListOrdersByOrganizationQuery::class, ListOrdersByOrganizationHandler::class);
+
+
     }
 }
