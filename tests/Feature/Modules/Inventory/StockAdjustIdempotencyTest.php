@@ -48,6 +48,7 @@ final class StockAdjustIdempotencyTest extends TestCase
 
         $this->withToken($token)
             ->withHeader('X-Business-Id', $orgId)
+            ->withHeader('Idempotency-Key', 'test-stock-init-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => $productId,
                 'quantity' => 10,
@@ -59,10 +60,13 @@ final class StockAdjustIdempotencyTest extends TestCase
 
     public function test_adjust_requires_idempotency_key(): void
     {
-        $ctx = $this->context();
+        $ctx = $this->context(); // init stock اینجا key دارد
+
+        $this->flushHeaders();
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['orgId'])
+            // بدون Idempotency-Key
             ->postJson('/api/stock/'.$ctx['productId'].'/adjust', [
                 'amount' => 1,
                 'direction' => 'increase',

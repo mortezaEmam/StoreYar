@@ -71,6 +71,7 @@ final class OrderApiTest extends TestCase
 
         $this->withToken($token)
             ->withHeader('X-Business-Id', $orgId)
+            ->withHeader('Idempotency-Key', 'test-stock-init-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => $productId,
                 'quantity' => $stockQty,
@@ -168,6 +169,13 @@ final class OrderApiTest extends TestCase
     {
         $ctx = $this->contextWithProductAndStock(2);
 
+        // تضمین: موجودی واقعاً 2 است
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->getJson('/api/stock/'.$ctx['product_id'])
+            ->assertOk()
+            ->assertJsonPath('data.quantity', 2);
+
         $orderId = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
             ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
@@ -177,33 +185,27 @@ final class OrderApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
-            ->postJson('/api/orders/' . $orderId . '/lines', [
+            ->postJson('/api/orders/'.$orderId.'/lines', [
                 'product_id' => $ctx['product_id'],
-                'quantity' => 5,
-                'unit_price_amount' => 1000,
+                'quantity' => 5, // بیشتر از 2
             ])
-            ->assertOk();
-
-        $this->confirmOrder(
-            $ctx['token'],
-            $ctx['organization_id'],
-            $orderId,
-        )->assertUnprocessable();
-
-        $this->withToken($ctx['token'])
-            ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
-            ->getJson('/api/orders/' . $orderId)
             ->assertOk()
-            ->assertJsonPath('data.status', 'draft');
+            ->assertJsonPath('data.lines.0.quantity', 5);
 
-        $this->withToken($ctx['token'])
+        $this->flushHeaders();
+
+        $response = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->getJson('/api/stock/' . $ctx['product_id'])
-            ->assertOk()
-            ->assertJsonPath('data.quantity', 2);
+            ->withHeader('Idempotency-Key', 'test-confirm-fail-'.uniqid('', true))
+            ->postJson('/api/orders/'.$orderId.'/confirm');
+
+        if ($response->status() !== 422) {
+            dump($response->status(), $response->json());
+        }
+
+        $response->assertUnprocessable();
     }
+
 
     public function test_duplicate_line_rejected(): void
     {

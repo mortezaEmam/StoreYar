@@ -10,6 +10,7 @@ use StoreYar\Modules\Inventory\Application\Commands\InitializeStock\InitializeSt
 use StoreYar\Modules\Inventory\Application\Queries\GetStockByProduct\GetStockByProductQuery;
 use StoreYar\Modules\Inventory\Application\Queries\ListStockByOrganization\ListStockByOrganizationQuery;
 use StoreYar\Modules\Inventory\Application\Services\AdjustStockIdempotently;
+use StoreYar\Modules\Inventory\Application\Services\InitializeStockIdempotently;
 use StoreYar\Modules\Inventory\Domain\Aggregates\StockItem;
 use StoreYar\Modules\Inventory\Domain\Exceptions\InsufficientStock;
 use StoreYar\Modules\Inventory\Domain\Exceptions\ProductNotFoundForStock;
@@ -30,6 +31,7 @@ final class StockController
         private QueryBus $queries,
         private BusinessContext $business,
         private AdjustStockIdempotently $adjustStockIdempotently,
+        private InitializeStockIdempotently $initializeStockIdempotently,
     ) {}
 
     public function index(): JsonResponse
@@ -66,27 +68,31 @@ final class StockController
     public function store(InitializeStockRequest $request): JsonResponse
     {
         try {
-            /** @var StockItem $item */
-            $item = $this->commands->dispatch(
-                new InitializeStockCommand(
-                    organizationId: $this->business->businessId(),
-                    productId: $request->string('product_id')->toString(),
-                    quantity: $request->integer('quantity', 0),
-                ),
+            $key = IdempotencyKey::fromHeader($request->header('Idempotency-Key'));
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 400);
+        }
+
+        try {
+            $result = $this->initializeStockIdempotently->execute(
+                organizationId: $this->business->businessId(),
+                productId: $request->string('product_id')->toString(),
+                quantity: $request->integer('quantity', 0),
+                idempotencyKey: $key->value(),
             );
 
-            return (new StockItemResource($item))
+            return (new StockItemResource($result['item']))
                 ->response()
-                ->setStatusCode(201);
+                ->setStatusCode($result['replayed'] ? 200 : 201)
+                ->header('Idempotency-Replayed', $result['replayed'] ? 'true' : 'false');
+        } catch (IdempotencyConflictException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
         } catch (ProductNotFoundForStock $e) {
             return response()->json(['message' => $e->getMessage()], 404);
-        } catch (StockItemAlreadyExists $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
-        } catch (\InvalidArgumentException $e) {
+        } catch (StockItemAlreadyExists|\InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
     }
-
     public function adjust(AdjustStockRequest $request, string $productId): JsonResponse
     {
         try {

@@ -17,6 +17,7 @@ use StoreYar\Modules\Sales\Application\Queries\GetOrderById\GetOrderByIdHandler;
 use StoreYar\Modules\Sales\Application\Queries\GetOrderById\GetOrderByIdQuery;
 use StoreYar\Modules\Sales\Application\Queries\ListOrdersByOrganization\ListOrdersByOrganizationHandler;
 use StoreYar\Modules\Sales\Application\Queries\ListOrdersByOrganization\ListOrdersByOrganizationQuery;
+use StoreYar\Modules\Sales\Application\Services\CancelOrderIdempotently;
 use StoreYar\Modules\Sales\Application\Services\ConfirmOrderIdempotently;
 use StoreYar\Modules\Sales\Application\Services\CreateOrderIdempotently;
 use StoreYar\Modules\Sales\Domain\Contracts\OrderRepository;
@@ -40,6 +41,8 @@ final class SalesServiceProvider extends ServiceProvider
         );
 
         $this->app->singleton(CreateOrderIdempotently::class);
+
+        $this->app->singleton(CancelOrderIdempotently::class);
 
         $commands = $this->app->make(CommandHandlerRegistry::class);
 

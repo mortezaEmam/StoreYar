@@ -14,6 +14,7 @@ use StoreYar\Modules\Sales\Application\Commands\ConfirmOrder\ConfirmOrderCommand
 use StoreYar\Modules\Sales\Application\Commands\CreateOrder\CreateOrderCommand;
 use StoreYar\Modules\Sales\Application\Queries\GetOrderById\GetOrderByIdQuery;
 use StoreYar\Modules\Sales\Application\Queries\ListOrdersByOrganization\ListOrdersByOrganizationQuery;
+use StoreYar\Modules\Sales\Application\Services\CancelOrderIdempotently;
 use StoreYar\Modules\Sales\Application\Services\ConfirmOrderIdempotently;
 use StoreYar\Modules\Sales\Application\Services\CreateOrderIdempotently;
 use StoreYar\Modules\Sales\Domain\Aggregates\Order;
@@ -39,6 +40,7 @@ final class OrderController
         private SessionRepository $sessions,
         private ConfirmOrderIdempotently $confirmOrderIdempotently,
         private CreateOrderIdempotently $createOrderIdempotently,
+        private CancelOrderIdempotently $cancelOrderIdempotently,
     ) {}
 
     public function index(): JsonResponse
@@ -162,18 +164,26 @@ final class OrderController
         }
     }
 
-    public function cancel(string $id): JsonResponse
+    public function cancel(Request $request, string $id): JsonResponse
     {
         try {
-            /** @var Order $order */
-            $order = $this->commands->dispatch(
-                new CancelOrderCommand(
-                    orderId: $id,
-                    organizationId: $this->business->businessId(),
-                ),
+            $key = IdempotencyKey::fromHeader($request->header('Idempotency-Key'));
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 400);
+        }
+
+        try {
+            $result = $this->cancelOrderIdempotently->execute(
+                organizationId: $this->business->businessId(),
+                orderId: $id,
+                idempotencyKey: $key->value(),
             );
 
-            return (new OrderResource($order))->response();
+            return (new OrderResource($result['order']))
+                ->response()
+                ->header('Idempotency-Replayed', $result['replayed'] ? 'true' : 'false');
+        } catch (IdempotencyConflictException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
         } catch (InvalidOrderState $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         } catch (\InvalidArgumentException $e) {
@@ -182,7 +192,6 @@ final class OrderController
             return response()->json(['message' => $e->getMessage()], $status);
         }
     }
-
     private function requireSession(Request $request): ?\StoreYar\Modules\Identity\Domain\Entities\Session
     {
         /** @var SessionId|null $sessionId */
@@ -194,4 +203,5 @@ final class OrderController
 
         return $this->sessions->findById($sessionId);
     }
+
 }

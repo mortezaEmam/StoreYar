@@ -67,7 +67,9 @@ final class StockApiTest extends TestCase
 
     public function test_initialize_stock_requires_auth(): void
     {
-        $this->postJson('/api/stock', [
+        $this
+            ->withHeader('Idempotency-Key', 'test-stock-init-'.uniqid('', true))
+            ->postJson('/api/stock', [
             'product_id' => '01JPROD0000000000000000001',
             'quantity' => 5,
         ])->assertUnauthorized();
@@ -81,6 +83,7 @@ final class StockApiTest extends TestCase
         $this->flushHeaders();
 
         $this->withToken($ctx['token'])
+            ->withHeader('Idempotency-Key', 'test-stock-init-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 5,
@@ -113,10 +116,10 @@ final class StockApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
+            ->withHeader('Idempotency-Key', 'test-stock-init-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => $ctx['product_id'],
-                'quantity' => 5,
+                'quantity' => 10,
             ])
             ->assertCreated();
 
@@ -153,6 +156,7 @@ final class StockApiTest extends TestCase
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
             ->withHeader('Idempotency-Key', 'test-adjust-inc-'.uniqid('', true))
+            ->withHeader('Idempotency-Key', 'test-stock-init-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 10,
@@ -187,23 +191,25 @@ final class StockApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
+            ->withHeader('Idempotency-Key', 'test-stock-init-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 2,
             ])
-            ->assertCreated();
+            ->assertCreated()
+            ->assertJsonPath('data.quantity', 2);
+
+        $this->flushHeaders();
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
+            ->withHeader('Idempotency-Key', 'test-adjust-fail-'.uniqid('', true))
             ->postJson('/api/stock/'.$ctx['product_id'].'/adjust', [
                 'amount' => 10,
                 'direction' => 'decrease',
             ])
             ->assertUnprocessable();
     }
-
 
     public function test_initialize_stock_for_unknown_product_returns_404(): void
     {
@@ -221,20 +227,21 @@ final class StockApiTest extends TestCase
 
     public function test_list_and_show_stock(): void
     {
-        $ctx = $this->contextWithProduct();
+        // فقط auth + org + product، بدون stock
+        $ctx = $this->contextWithProductOnly(); // اگر نداری، از helper جدا کن
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
+            ->withHeader('Idempotency-Key', 'test-stock-init-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 7,
             ])
-            ->assertCreated();
+            ->assertCreated()
+            ->assertJsonPath('data.quantity', 7);
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
             ->getJson('/api/stock')
             ->assertOk()
             ->assertJsonCount(1, 'data')
@@ -243,12 +250,10 @@ final class StockApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
             ->getJson('/api/stock/'.$ctx['product_id'])
             ->assertOk()
             ->assertJsonPath('data.quantity', 7);
     }
-
     public function test_show_stock_not_found(): void
     {
         $ctx = $this->contextWithProduct();
@@ -267,10 +272,10 @@ final class StockApiTest extends TestCase
 
         $id = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
+            ->withHeader('Idempotency-Key', 'test-stock-init-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => $ctx['product_id'],
-                'quantity' => 5,
+                'quantity' => 10,
             ])
             ->assertCreated()
             ->json('data.id');
@@ -288,6 +293,7 @@ final class StockApiTest extends TestCase
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
             ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
+            ->withHeader('Idempotency-Key', 'test-stock-init-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 10,
@@ -309,5 +315,57 @@ final class StockApiTest extends TestCase
                 ->where('event_type', \StoreYar\Modules\Inventory\Domain\Events\StockAdjusted::class)
                 ->exists()
         );
+    }
+
+    /**
+     * @return array{token: string, organization_id: string, product_id: string}
+     */
+    private function contextWithProductOnly(): array
+    {
+        // همان منطق contextWithProduct / context خودت
+        // ولی بدون POST /api/stock
+
+        $commands = $this->app->make(\StoreYar\Shared\Application\Bus\Command\CommandBus::class);
+
+        /** @var \StoreYar\Modules\Identity\Domain\Aggregates\User $user */
+        $user = $commands->dispatch(
+            new \StoreYar\Modules\Identity\Application\Commands\CreateUser\CreateUserCommand(
+                email: 'stock-list@example.com',
+                name: 'Stock List User',
+            ),
+        );
+
+        $commands->dispatch(
+            new \StoreYar\Modules\Identity\Application\Commands\SetPassword\SetPasswordCommand(
+                userId: (string) $user->id(),
+                password: 'password123',
+            ),
+        );
+
+        $token = $this->postJson('/api/auth/login', [
+            'email' => 'stock-list@example.com',
+            'password' => 'password123',
+        ])->json('data.token');
+
+        $organizationId = $this->withToken($token)
+            ->postJson('/api/organizations', ['name' => 'Stock List Shop'])
+            ->assertCreated()
+            ->json('data.id');
+
+        $productId = $this->withToken($token)
+            ->withHeader('X-Business-Id', $organizationId)
+            ->postJson('/api/products', [
+                'name' => 'List Product',
+                'sku' => 'SKU-LIST-'.uniqid(),
+                'unit_price_amount' => 1000,
+            ])
+            ->assertCreated()
+            ->json('data.id');
+
+        return [
+            'token' => $token,
+            'organization_id' => $organizationId,
+            'product_id' => $productId,
+        ];
     }
 }

@@ -54,7 +54,11 @@ final class OutboxPublishCommandTest extends TestCase
 
         $this->withToken($token)
             ->withHeader('X-Business-Id', $orgId)
-            ->postJson('/api/stock', ['product_id' => $productId, 'quantity' => 5])
+            ->withHeader('Idempotency-Key', 'test-stock-init-'.uniqid('', true))
+            ->postJson('/api/stock', [
+                'product_id' => $productId,
+                'quantity' => 10,
+            ])
             ->assertCreated();
 
         $orderId = $this->withToken($token)

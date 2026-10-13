@@ -1,17 +1,21 @@
 openapi: 3.1.0
 info:
   title: StoreYar API
-  version: 1.0.0
-  description: >
-    Multi-tenant commerce backend (Identity, Organization, Authorization,
-    Catalog, Inventory, Sales). All business routes require session auth and
-    X-Business-Id unless noted.
+  version: 1.1.0
+  description: |
+    Multi-tenant commerce API.
+    Authenticated business routes require:
+      - Authorization: Bearer {session_token}
+      - X-Business-Id: {organization_ulid}
+    Mutating stock/order endpoints that are idempotent also require:
+      - Idempotency-Key: {client_unique_key} (max 128 chars)
 servers:
   - url: /api
-    description: Application API
 tags:
   - name: Auth
   - name: Organizations
+  - name: Members
+  - name: Branches
   - name: Products
   - name: Stock
   - name: Orders
@@ -20,45 +24,79 @@ components:
     SessionToken:
       type: http
       scheme: bearer
-      description: Session token from POST /auth/login
   parameters:
     BusinessId:
       name: X-Business-Id
       in: header
       required: true
-      schema:
-        type: string
-        minLength: 26
-        maxLength: 26
+      schema: { type: string, minLength: 26, maxLength: 26 }
     IdempotencyKey:
       name: Idempotency-Key
       in: header
       required: true
-      schema:
-        type: string
-        maxLength: 128
+      schema: { type: string, maxLength: 128 }
+    OrganizationId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
   schemas:
     ErrorMessage:
       type: object
       required: [message]
       properties:
-        message:
-          type: string
-    Product:
+        message: { type: string }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+    RegisterRequest:
+      type: object
+      required: [email, name, password, password_confirmation]
+      properties:
+        email: { type: string, format: email }
+        name: { type: string }
+        password: { type: string }
+        password_confirmation: { type: string }
+    TokenResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            token: { type: string }
+    Organization:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        status: { type: string, enum: [active, suspended] }
+    Member:
+      type: object
+      properties:
+        user_id: { type: string }
+        role: { type: string, enum: [owner, admin, member] }
+    Branch:
       type: object
       properties:
         id: { type: string }
         organization_id: { type: string }
         name: { type: string }
+    Product:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
         sku: { type: string }
         unit_price_amount: { type: integer, minimum: 0 }
-        currency: { type: string, example: IRR }
+        currency: { type: string }
         status: { type: string, enum: [draft, active, archived] }
     StockItem:
       type: object
       properties:
         id: { type: string }
-        organization_id: { type: string }
         product_id: { type: string }
         quantity: { type: integer }
     Order:
@@ -77,6 +115,18 @@ components:
               quantity: { type: integer }
               unit_price_amount: { type: integer }
 paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201': { description: Registered }
+        '422': { description: Validation or duplicate email }
   /auth/login:
     post:
       tags: [Auth]
@@ -85,31 +135,181 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              required: [email, password]
-              properties:
-                email: { type: string, format: email }
-                password: { type: string }
+            schema: { $ref: '#/components/schemas/LoginRequest' }
       responses:
         '200':
-          description: Authenticated
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+        '401': { description: Invalid credentials }
+        '429': { description: Rate limited }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      security: [{ SessionToken: [] }]
+      summary: Logout current session
+      responses:
+        '200': { description: Logged out }
+  /auth/me:
+    get:
+      tags: [Auth]
+      security: [{ SessionToken: [] }]
+      summary: Current user
+      responses:
+        '200': { description: OK }
+  /auth/rotate:
+    post:
+      tags: [Auth]
+      security: [{ SessionToken: [] }]
+      summary: Rotate session token
+      responses:
+        '200': { description: New token issued }
+  /organizations:
+    get:
+      tags: [Organizations]
+      security: [{ SessionToken: [] }]
+      summary: List organizations for current user
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Organizations]
+      security: [{ SessionToken: [] }]
+      summary: Create organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+      responses:
+        '201': { description: Created }
+  /organizations/{id}:
+    get:
+      tags: [Organizations]
+      security: [{ SessionToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+      responses:
+        '200': { description: OK }
+        '403': { description: Forbidden }
+        '404': { description: Not found }
+    patch:
+      tags: [Organizations]
+      security: [{ SessionToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+      responses:
+        '200': { description: Renamed }
+        '403': { description: Forbidden }
+  /organizations/{id}/suspend:
+    post:
+      tags: [Organizations]
+      security: [{ SessionToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+      responses:
+        '200': { description: Suspended }
+  /organizations/{id}/activate:
+    post:
+      tags: [Organizations]
+      security: [{ SessionToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+      responses:
+        '200': { description: Activated }
+  /organizations/{id}/branches:
+    get:
+      tags: [Branches]
+      security: [{ SessionToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+      responses:
+        '200': { description: Branch list }
+    post:
+      tags: [Branches]
+      security: [{ SessionToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+      responses:
+        '201': { description: Created }
+  /organizations/{id}/members:
+    get:
+      tags: [Members]
+      security: [{ SessionToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+      responses:
+        '200': { description: Member list }
+    post:
+      tags: [Members]
+      security: [{ SessionToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, role]
+              properties:
+                user_id: { type: string }
+                role: { type: string, enum: [owner, admin, member] }
+      responses:
+        '201': { description: Membership granted }
+  /organizations/{id}/members/{userId}:
+    patch:
+      tags: [Members]
+      security: [{ SessionToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/OrganizationId' }
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role: { type: string, enum: [owner, admin, member] }
+      responses:
+        '200': { description: Role updated }
+    delete:
+      tags: [Members]
+      security: [{ SessionToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/OrganizationId' }
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Membership revoked }
   /products:
     get:
       tags: [Products]
       security: [{ SessionToken: [] }]
-      parameters:
-        - $ref: '#/components/parameters/BusinessId'
+      parameters: [{ $ref: '#/components/parameters/BusinessId' }]
       responses:
-        '200':
-          description: Product list
+        '200': { description: Product list }
     post:
       tags: [Products]
       security: [{ SessionToken: [] }]
-      parameters:
-        - $ref: '#/components/parameters/BusinessId'
+      parameters: [{ $ref: '#/components/parameters/BusinessId' }]
       requestBody:
-        required: true
         content:
           application/json:
             schema:
@@ -121,21 +321,134 @@ paths:
                 unit_price_amount: { type: integer, minimum: 0 }
                 currency: { type: string, default: IRR }
       responses:
-        '201':
-          description: Created
+        '201': { description: Created }
+  /products/{id}:
+    get:
+      tags: [Products]
+      security: [{ SessionToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/BusinessId' }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+        '404': { description: Not found }
+    patch:
+      tags: [Products]
+      security: [{ SessionToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/BusinessId' }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+      responses:
+        '200': { description: Renamed }
+  /products/{id}/price:
+    patch:
+      tags: [Products]
+      security: [{ SessionToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/BusinessId' }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [unit_price_amount]
+              properties:
+                unit_price_amount: { type: integer, minimum: 0 }
+                currency: { type: string }
+      responses:
+        '200': { description: Price updated }
+  /products/{id}/activate:
+    post:
+      tags: [Products]
+      security: [{ SessionToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/BusinessId' }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Activated }
+  /products/{id}/archive:
+    post:
+      tags: [Products]
+      security: [{ SessionToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/BusinessId' }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Archived }
+  /stock:
+    get:
+      tags: [Stock]
+      security: [{ SessionToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/BusinessId' }]
+      responses:
+        '200': { description: Stock list }
+    post:
+      tags: [Stock]
+      security: [{ SessionToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/BusinessId' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [product_id]
+              properties:
+                product_id: { type: string }
+                quantity: { type: integer, minimum: 0 }
+      responses:
+        '201': { description: Initialized }
+        '200': { description: Idempotent replay }
+        '400': { description: Missing Idempotency-Key }
+  /stock/{productId}:
+    get:
+      tags: [Stock]
+      security: [{ SessionToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/BusinessId' }
+        - name: productId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+        '404': { description: Not found }
   /stock/{productId}/adjust:
     post:
       tags: [Stock]
       security: [{ SessionToken: [] }]
       parameters:
-        - $ref: '#/components/parameters/BusinessId'
-        - $ref: '#/components/parameters/IdempotencyKey'
+        - { $ref: '#/components/parameters/BusinessId' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
         - name: productId
           in: path
           required: true
           schema: { type: string }
       requestBody:
-        required: true
         content:
           application/json:
             schema:
@@ -145,37 +458,86 @@ paths:
                 amount: { type: integer, minimum: 1 }
                 direction: { type: string, enum: [increase, decrease] }
       responses:
-        '200':
-          description: Adjusted (or idempotent replay)
-        '400':
-          description: Missing Idempotency-Key
-        '409':
-          description: Idempotency conflict
+        '200': { description: Adjusted or replay }
+        '400': { description: Missing Idempotency-Key }
   /orders:
-    post:
+    get:
       tags: [Orders]
       security: [{ SessionToken: [] }]
-      parameters:
-        - $ref: '#/components/parameters/BusinessId'
-        - $ref: '#/components/parameters/IdempotencyKey'
+      parameters: [{ $ref: '#/components/parameters/BusinessId' }]
       responses:
-        '201':
-          description: Draft order created
-        '200':
-          description: Idempotent replay
-  /orders/{id}/confirm:
+        '200': { description: Order list }
     post:
       tags: [Orders]
       security: [{ SessionToken: [] }]
       parameters:
-        - $ref: '#/components/parameters/BusinessId'
-        - $ref: '#/components/parameters/IdempotencyKey'
+        - { $ref: '#/components/parameters/BusinessId' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      responses:
+        '201': { description: Draft created }
+        '200': { description: Idempotent replay }
+        '400': { description: Missing Idempotency-Key }
+  /orders/{id}:
+    get:
+      tags: [Orders]
+      security: [{ SessionToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/BusinessId' }
         - name: id
           in: path
           required: true
           schema: { type: string }
       responses:
-        '200':
-          description: Confirmed (or replay)
-        '422':
-          description: Business rule / insufficient stock
+        '200': { description: OK }
+        '404': { description: Not found }
+  /orders/{id}/lines:
+    post:
+      tags: [Orders]
+      security: [{ SessionToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/BusinessId' }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [product_id, quantity]
+              properties:
+                product_id: { type: string }
+                quantity: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: Line added }
+  /orders/{id}/confirm:
+    post:
+      tags: [Orders]
+      security: [{ SessionToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/BusinessId' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Confirmed or replay }
+        '400': { description: Missing Idempotency-Key }
+        '422': { description: Business rule / insufficient stock }
+  /orders/{id}/cancel:
+    post:
+      tags: [Orders]
+      security: [{ SessionToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/BusinessId' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Cancelled or replay }
+        '400': { description: Missing Idempotency-Key }
+        '422': { description: Invalid state }

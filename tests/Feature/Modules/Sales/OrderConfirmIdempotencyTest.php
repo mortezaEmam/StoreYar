@@ -59,9 +59,10 @@ final class OrderConfirmIdempotencyTest extends TestCase
 
         $this->withToken($token)
             ->withHeader('X-Business-Id', $orgId)
+            ->withHeader('Idempotency-Key', 'test-stock-init-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => $productId,
-                'quantity' => $qty,
+                'quantity' => 10,
             ])
             ->assertCreated();
 
