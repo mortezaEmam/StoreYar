@@ -107,6 +107,7 @@ final class OrderApiTest extends TestCase
 
         $order = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
             ->postJson('/api/orders')
             ->assertCreated()
             ->assertJsonPath('data.status', 'draft');
@@ -115,6 +116,7 @@ final class OrderApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
             ->postJson('/api/orders/' . $orderId . '/lines', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 2,
@@ -131,12 +133,14 @@ final class OrderApiTest extends TestCase
 
         $orderId = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
             ->postJson('/api/orders')
             ->assertCreated()
             ->json('data.id');
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-confirm-'.uniqid('', true))
             ->postJson('/api/orders/' . $orderId . '/lines', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 3,
@@ -154,6 +158,7 @@ final class OrderApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
             ->getJson('/api/stock/' . $ctx['product_id'])
             ->assertOk()
             ->assertJsonPath('data.quantity', 7);
@@ -165,12 +170,14 @@ final class OrderApiTest extends TestCase
 
         $orderId = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
             ->postJson('/api/orders')
             ->assertCreated()
             ->json('data.id');
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
             ->postJson('/api/orders/' . $orderId . '/lines', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 5,
@@ -186,6 +193,7 @@ final class OrderApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
             ->getJson('/api/orders/' . $orderId)
             ->assertOk()
             ->assertJsonPath('data.status', 'draft');
@@ -203,6 +211,7 @@ final class OrderApiTest extends TestCase
 
         $orderId = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
             ->postJson('/api/orders')
             ->assertCreated()
             ->json('data.id');
@@ -215,11 +224,13 @@ final class OrderApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
             ->postJson('/api/orders/' . $orderId . '/lines', $payload)
             ->assertOk();
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
             ->postJson('/api/orders/' . $orderId . '/lines', $payload)
             ->assertUnprocessable();
     }
@@ -230,12 +241,14 @@ final class OrderApiTest extends TestCase
 
         $orderId = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
             ->postJson('/api/orders')
             ->assertCreated()
             ->json('data.id');
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
             ->postJson('/api/orders/' . $orderId . '/lines', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 4,
@@ -251,6 +264,7 @@ final class OrderApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-cancel-'.uniqid('', true))
             ->postJson('/api/orders/' . $orderId . '/cancel')
             ->assertOk()
             ->assertJsonPath('data.status', 'cancelled');
@@ -268,12 +282,14 @@ final class OrderApiTest extends TestCase
 
         $orderId = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
             ->postJson('/api/orders')
             ->assertCreated()
             ->json('data.id');
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
             ->postJson('/api/orders/' . $orderId . '/lines', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 1,

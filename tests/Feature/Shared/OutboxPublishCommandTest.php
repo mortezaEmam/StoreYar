@@ -59,11 +59,13 @@ final class OutboxPublishCommandTest extends TestCase
 
         $orderId = $this->withToken($token)
             ->withHeader('X-Business-Id', $orgId)
+            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
             ->postJson('/api/orders')
             ->json('data.id');
 
         $this->withToken($token)
             ->withHeader('X-Business-Id', $orgId)
+            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
             ->postJson('/api/orders/'.$orderId.'/lines', [
                 'product_id' => $productId,
                 'quantity' => 1,
@@ -73,6 +75,7 @@ final class OutboxPublishCommandTest extends TestCase
 
         $this->withToken($token)
             ->withHeader('X-Business-Id', $orgId)
+            ->withHeader('Idempotency-Key', 'test-confirm-'.uniqid('', true))
             ->postJson('/api/orders/'.$orderId.'/confirm')
             ->assertOk();
 

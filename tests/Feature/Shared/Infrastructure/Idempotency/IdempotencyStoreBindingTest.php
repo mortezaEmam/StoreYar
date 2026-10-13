@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Shared\Infrastructure\Idempotency;
 
+
 use StoreYar\Shared\Application\Contracts\Idempotency\IdempotencyStore;
 use StoreYar\Shared\Infrastructure\Idempotency\DatabaseIdempotencyStore;
 use Tests\TestCase;

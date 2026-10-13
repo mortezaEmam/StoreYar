@@ -13,18 +13,23 @@ use StoreYar\Modules\Sales\Domain\ValueObjects\OrderId;
 use StoreYar\Shared\Application\Bus\Command\CommandBus;
 use StoreYar\Shared\Application\Contracts\Idempotency\IdempotencyRecord;
 use StoreYar\Shared\Application\Contracts\Idempotency\IdempotencyStore;
+use StoreYar\Shared\Application\Idempotency\IdempotencyKey;
 use StoreYar\Shared\Domain\Exceptions\IdempotencyConflictException;
-use StoreYar\Shared\Infrastructure\Id\UlidGenerator;
+use Symfony\Component\Uid\Ulid;
 
-final readonly class ConfirmOrderIdempotently
+final class ConfirmOrderIdempotently
 {
+    private const OPERATION_TYPE = 'sales.order.confirm';
+
+    private const STATUS_STARTED = 'started';
+
+    private const STATUS_COMPLETED = 'completed';
+
     public function __construct(
         private CommandBus $commands,
         private OrderRepository $orders,
         private IdempotencyStore $idempotency,
-        private UlidGenerator $idGenerator,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{order: Order, replayed: bool}
@@ -34,39 +39,74 @@ final readonly class ConfirmOrderIdempotently
         string $orderId,
         string $idempotencyKey,
     ): array {
-        $operationId = $this->operation($orderId, $idempotencyKey);
-        $operationType = 'sales.order.confirm';
-
-        $existing = $this->idempotency->find(
+        $operationId = IdempotencyKey::operationId(
+            self::OPERATION_TYPE,
             $organizationId,
-            $operationId,
+            $orderId,
+            $idempotencyKey,
         );
 
-        if ($existing !== null) {
-            return $this->replay($existing, $organizationId);
-        }
+        $existing = $this->idempotency->find($organizationId, $operationId);
 
-        $processing = new IdempotencyRecord(
-            id: $this->idGenerator->generate(),
-            businessId: $organizationId,
-            operationId: $operationId,
-            operationType: $operationType,
-            status: 'processing',
-        );
+        if ($existing !== null && $existing->status() === self::STATUS_COMPLETED) {
+            $payload = $existing->response();
+            $savedOrderId = $payload['order_id'] ?? null;
 
-        if (! $this->idempotency->claim($processing)) {
-            $existing = $this->idempotency->find(
-                $organizationId,
-                $operationId,
-            );
-
-            if ($existing === null || $existing->status() === 'processing') {
-                throw new IdempotencyConflictException(
-                    'A request with this Idempotency-Key is already being processed.',
-                );
+            if (! is_string($savedOrderId) || $savedOrderId === '') {
+                throw new \RuntimeException('Completed idempotency record is missing order_id.');
             }
 
-            return $this->replay($existing, $organizationId);
+            $order = $this->orders->findById(OrderId::fromString($savedOrderId));
+
+            if ($order === null || $order->organizationId() !== $organizationId) {
+                throw new \RuntimeException('Idempotent confirm result references a missing order.');
+            }
+
+            return [
+                'order' => $order,
+                'replayed' => true,
+            ];
+        }
+
+        if ($existing !== null && $existing->status() === self::STATUS_STARTED) {
+            throw new IdempotencyConflictException(
+                'A request with this Idempotency-Key is already being processed.',
+            );
+        }
+
+        $claim = new IdempotencyRecord(
+            id: (string) new Ulid(),
+            businessId: $organizationId,
+            operationId: $operationId,
+            operationType: self::OPERATION_TYPE,
+            status: self::STATUS_STARTED,
+            response: [],
+            completedAt: null,
+        );
+
+        if (! $this->idempotency->claim($claim)) {
+            // Lost the race: re-read
+            $again = $this->idempotency->find($organizationId, $operationId);
+
+            if ($again !== null && $again->status() === self::STATUS_COMPLETED) {
+                $payload = $again->response();
+                $savedOrderId = $payload['order_id'] ?? null;
+
+                if (is_string($savedOrderId) && $savedOrderId !== '') {
+                    $order = $this->orders->findById(OrderId::fromString($savedOrderId));
+
+                    if ($order !== null && $order->organizationId() === $organizationId) {
+                        return [
+                            'order' => $order,
+                            'replayed' => true,
+                        ];
+                    }
+                }
+            }
+
+            throw new IdempotencyConflictException(
+                'A request with this Idempotency-Key is already being processed.',
+            );
         }
 
         try {
@@ -80,18 +120,13 @@ final readonly class ConfirmOrderIdempotently
 
             $this->idempotency->store(
                 new IdempotencyRecord(
-                    id: $processing->id(),
+                    id: $claim->id(),
                     businessId: $organizationId,
                     operationId: $operationId,
-                    operationType: $operationType,
-                    status: 'completed',
-                    response: [
-                        'order_id' => $order->orderId()->value(),
-                    ],
-                    completedAt: new DateTimeImmutable(
-                        'now',
-                        new DateTimeZone('UTC'),
-                    ),
+                    operationType: self::OPERATION_TYPE,
+                    status: self::STATUS_COMPLETED,
+                    response: ['order_id' => $order->orderId()->value()],
+                    completedAt: new DateTimeImmutable('now', new DateTimeZone('UTC')),
                 ),
             );
 
@@ -99,67 +134,11 @@ final readonly class ConfirmOrderIdempotently
                 'order' => $order,
                 'replayed' => false,
             ];
-        } catch (\Throwable $exception) {
-            /*
-             * The current IdempotencyStore contract has no release/delete
-             * method. Do not call a nonexistent method here.
-             */
-            throw $exception;
+        } catch (\Throwable $e) {
+            // Leave started row as-is or delete if you have a release path.
+            // Retry with same key after failure needs either delete or status=failed.
+            // Prefer marking failed if your schema allows; otherwise document client must use new key.
+            throw $e;
         }
     }
-
-    /**
-     * @return array{order: Order, replayed: true}
-     */
-    private function replay(
-        IdempotencyRecord $record,
-        string $organizationId,
-    ): array {
-        if ($record->status() !== 'completed') {
-            throw new IdempotencyConflictException(
-                'A request with this Idempotency-Key is already being processed.',
-            );
-        }
-
-        $savedOrderId = $record->response()['order_id'] ?? null;
-
-        if (! is_string($savedOrderId) || $savedOrderId === '') {
-            throw new \RuntimeException(
-                'Idempotency record does not contain a valid order ID.',
-            );
-        }
-
-        $order = $this->orders->findById(
-            OrderId::fromString($savedOrderId),
-        );
-
-        if (
-            $order === null
-            || $order->organizationId() !== $organizationId
-        ) {
-            throw new \RuntimeException(
-                'Idempotent confirm result references a missing order.',
-            );
-        }
-
-        return [
-            'order' => $order,
-            'replayed' => true,
-        ];
-    }
-
-
-
-    private function operation(
-        string $orderId,
-        string $idempotencyKey,
-    ): string {
-        return substr(
-            hash('sha256', $orderId.':'.$idempotencyKey),
-            0,
-            26,
-        );
-    }
-
-
 }

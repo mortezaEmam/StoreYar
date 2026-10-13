@@ -9,6 +9,7 @@ use StoreYar\Modules\Inventory\Application\Commands\AdjustStock\AdjustStockComma
 use StoreYar\Modules\Inventory\Application\Commands\InitializeStock\InitializeStockCommand;
 use StoreYar\Modules\Inventory\Application\Queries\GetStockByProduct\GetStockByProductQuery;
 use StoreYar\Modules\Inventory\Application\Queries\ListStockByOrganization\ListStockByOrganizationQuery;
+use StoreYar\Modules\Inventory\Application\Services\AdjustStockIdempotently;
 use StoreYar\Modules\Inventory\Domain\Aggregates\StockItem;
 use StoreYar\Modules\Inventory\Domain\Exceptions\InsufficientStock;
 use StoreYar\Modules\Inventory\Domain\Exceptions\ProductNotFoundForStock;
@@ -19,6 +20,8 @@ use StoreYar\Modules\Inventory\Presentation\Http\Resources\StockItemResource;
 use StoreYar\Shared\Application\Bus\Command\CommandBus;
 use StoreYar\Shared\Application\Bus\Query\QueryBus;
 use StoreYar\Shared\Application\Context\BusinessContext;
+use StoreYar\Shared\Application\Idempotency\IdempotencyKey;
+use StoreYar\Shared\Domain\Exceptions\IdempotencyConflictException;
 
 final class StockController
 {
@@ -26,6 +29,7 @@ final class StockController
         private CommandBus $commands,
         private QueryBus $queries,
         private BusinessContext $business,
+        private AdjustStockIdempotently $adjustStockIdempotently,
     ) {}
 
     public function index(): JsonResponse
@@ -86,19 +90,25 @@ final class StockController
     public function adjust(AdjustStockRequest $request, string $productId): JsonResponse
     {
         try {
-            /** @var StockItem $item */
-            $item = $this->commands->dispatch(
-                new AdjustStockCommand(
-                    organizationId: $this->business->businessId(),
-                    productId: $productId,
-                    amount: $request->integer('amount'),
-                    direction: $request->string('direction')->toString(),
-                ),
+            $key = IdempotencyKey::fromHeader($request->header('Idempotency-Key'));
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 400);
+        }
+
+        try {
+            $result = $this->adjustStockIdempotently->execute(
+                organizationId: $this->business->businessId(),
+                productId: $productId,
+                amount: $request->integer('amount'),
+                direction: $request->string('direction')->toString(),
+                idempotencyKey: $key->value(),
             );
 
-            return (new StockItemResource($item))
+            return (new StockItemResource($result['item']))
                 ->response()
-                ->setStatusCode(200);
+                ->header('Idempotency-Replayed', $result['replayed'] ? 'true' : 'false');
+        } catch (IdempotencyConflictException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
         } catch (InsufficientStock $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         } catch (\InvalidArgumentException $e) {
@@ -106,5 +116,4 @@ final class StockController
 
             return response()->json(['message' => $e->getMessage()], $status);
         }
-    }
-}
+    }}

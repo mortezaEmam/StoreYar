@@ -17,6 +17,8 @@ use StoreYar\Modules\Sales\Application\Queries\GetOrderById\GetOrderByIdHandler;
 use StoreYar\Modules\Sales\Application\Queries\GetOrderById\GetOrderByIdQuery;
 use StoreYar\Modules\Sales\Application\Queries\ListOrdersByOrganization\ListOrdersByOrganizationHandler;
 use StoreYar\Modules\Sales\Application\Queries\ListOrdersByOrganization\ListOrdersByOrganizationQuery;
+use StoreYar\Modules\Sales\Application\Services\ConfirmOrderIdempotently;
+use StoreYar\Modules\Sales\Application\Services\CreateOrderIdempotently;
 use StoreYar\Modules\Sales\Domain\Contracts\OrderRepository;
 use StoreYar\Modules\Sales\Domain\Contracts\ProductCatalogGateway;
 use StoreYar\Modules\Sales\Domain\Contracts\StockReservationService;
@@ -34,8 +36,11 @@ final class SalesServiceProvider extends ServiceProvider
         $this->app->singleton(StockReservationService::class, InventoryStockReservationService::class);
         $this->app->singleton(ProductCatalogGateway::class, CatalogProductCatalogGateway::class);
         $this->app->singleton(
-            \StoreYar\Modules\Sales\Application\Services\ConfirmOrderIdempotently::class,
+            ConfirmOrderIdempotently::class,
         );
+
+        $this->app->singleton(CreateOrderIdempotently::class);
+
         $commands = $this->app->make(CommandHandlerRegistry::class);
 
         $commands->register(CreateOrderCommand::class, CreateOrderHandler::class);

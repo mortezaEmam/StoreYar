@@ -15,6 +15,7 @@ use StoreYar\Modules\Sales\Application\Commands\CreateOrder\CreateOrderCommand;
 use StoreYar\Modules\Sales\Application\Queries\GetOrderById\GetOrderByIdQuery;
 use StoreYar\Modules\Sales\Application\Queries\ListOrdersByOrganization\ListOrdersByOrganizationQuery;
 use StoreYar\Modules\Sales\Application\Services\ConfirmOrderIdempotently;
+use StoreYar\Modules\Sales\Application\Services\CreateOrderIdempotently;
 use StoreYar\Modules\Sales\Domain\Aggregates\Order;
 use StoreYar\Modules\Sales\Domain\Exceptions\DuplicateOrderLine;
 use StoreYar\Modules\Sales\Domain\Exceptions\EmptyOrder;
@@ -26,6 +27,7 @@ use StoreYar\Modules\Sales\Presentation\Http\Resources\OrderResource;
 use StoreYar\Shared\Application\Bus\Command\CommandBus;
 use StoreYar\Shared\Application\Bus\Query\QueryBus;
 use StoreYar\Shared\Application\Context\BusinessContext;
+use StoreYar\Shared\Application\Idempotency\IdempotencyKey;
 use StoreYar\Shared\Domain\Exceptions\IdempotencyConflictException;
 
 final class OrderController
@@ -36,6 +38,7 @@ final class OrderController
         private BusinessContext $business,
         private SessionRepository $sessions,
         private ConfirmOrderIdempotently $confirmOrderIdempotently,
+        private CreateOrderIdempotently $createOrderIdempotently,
     ) {}
 
     public function index(): JsonResponse
@@ -73,19 +76,29 @@ final class OrderController
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        /** @var Order $order */
-        $order = $this->commands->dispatch(
-            new CreateOrderCommand(
+        try {
+            $key = IdempotencyKey::fromHeader($request->header('Idempotency-Key'));
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 400);
+        }
+
+        try {
+            $result = $this->createOrderIdempotently->execute(
                 organizationId: $this->business->businessId(),
-                customerUserId: $session->userId(),
-            ),
-        );
+                customerUserId: is_object($session->userId()) && method_exists($session->userId(), 'value')
+                    ? $session->userId()->value()
+                    : (string) $session->userId(),
+                idempotencyKey: $key->value(),
+            );
 
-        return (new OrderResource($order))
-            ->response()
-            ->setStatusCode(201);
+            return (new OrderResource($result['order']))
+                ->response()
+                ->setStatusCode($result['replayed'] ? 200 : 201)
+                ->header('Idempotency-Replayed', $result['replayed'] ? 'true' : 'false');
+        } catch (IdempotencyConflictException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        }
     }
-
     public function addLine(AddOrderLineRequest $request, string $id): JsonResponse
     {
         try {

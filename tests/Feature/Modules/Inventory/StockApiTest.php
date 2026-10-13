@@ -95,6 +95,7 @@ final class StockApiTest extends TestCase
 
         $response = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 15,
@@ -112,6 +113,7 @@ final class StockApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 5,
@@ -120,6 +122,7 @@ final class StockApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 10,
@@ -133,6 +136,7 @@ final class StockApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => '',
                 'quantity' => -1,
@@ -148,6 +152,7 @@ final class StockApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-adjust-inc-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 10,
@@ -156,6 +161,7 @@ final class StockApiTest extends TestCase
 
         $increased = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-adjust-dec-'.uniqid('', true))
             ->postJson('/api/stock/'.$ctx['product_id'].'/adjust', [
                 'amount' => 5,
                 'direction' => 'increase',
@@ -181,6 +187,7 @@ final class StockApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 2,
@@ -189,6 +196,7 @@ final class StockApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
             ->postJson('/api/stock/'.$ctx['product_id'].'/adjust', [
                 'amount' => 10,
                 'direction' => 'decrease',
@@ -203,6 +211,7 @@ final class StockApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => (string) \Illuminate\Support\Str::ulid(),
                 'quantity' => 1,
@@ -216,6 +225,7 @@ final class StockApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 7,
@@ -224,6 +234,7 @@ final class StockApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
             ->getJson('/api/stock')
             ->assertOk()
             ->assertJsonCount(1, 'data')
@@ -232,6 +243,7 @@ final class StockApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
             ->getJson('/api/stock/'.$ctx['product_id'])
             ->assertOk()
             ->assertJsonPath('data.quantity', 7);
@@ -243,6 +255,7 @@ final class StockApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
             ->getJson('/api/stock/'.(string) \Illuminate\Support\Str::ulid())
             ->assertNotFound();
     }
@@ -254,6 +267,7 @@ final class StockApiTest extends TestCase
 
         $id = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 5,
@@ -273,6 +287,7 @@ final class StockApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
             ->postJson('/api/stock', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 10,
@@ -281,6 +296,7 @@ final class StockApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-adjust-'.uniqid('', true))
             ->postJson('/api/stock/'.$ctx['product_id'].'/adjust', [
                 'amount' => 2,
                 'direction' => 'increase',

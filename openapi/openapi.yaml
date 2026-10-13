@@ -1,0 +1,181 @@
+openapi: 3.1.0
+info:
+  title: StoreYar API
+  version: 1.0.0
+  description: >
+    Multi-tenant commerce backend (Identity, Organization, Authorization,
+    Catalog, Inventory, Sales). All business routes require session auth and
+    X-Business-Id unless noted.
+servers:
+  - url: /api
+    description: Application API
+tags:
+  - name: Auth
+  - name: Organizations
+  - name: Products
+  - name: Stock
+  - name: Orders
+components:
+  securitySchemes:
+    SessionToken:
+      type: http
+      scheme: bearer
+      description: Session token from POST /auth/login
+  parameters:
+    BusinessId:
+      name: X-Business-Id
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 26
+        maxLength: 26
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+  schemas:
+    ErrorMessage:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+    Product:
+      type: object
+      properties:
+        id: { type: string }
+        organization_id: { type: string }
+        name: { type: string }
+        sku: { type: string }
+        unit_price_amount: { type: integer, minimum: 0 }
+        currency: { type: string, example: IRR }
+        status: { type: string, enum: [draft, active, archived] }
+    StockItem:
+      type: object
+      properties:
+        id: { type: string }
+        organization_id: { type: string }
+        product_id: { type: string }
+        quantity: { type: integer }
+    Order:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [draft, confirmed, cancelled] }
+        total_amount: { type: integer }
+        currency: { type: string }
+        lines:
+          type: array
+          items:
+            type: object
+            properties:
+              product_id: { type: string }
+              quantity: { type: integer }
+              unit_price_amount: { type: integer }
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: Authenticated
+  /products:
+    get:
+      tags: [Products]
+      security: [{ SessionToken: [] }]
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+      responses:
+        '200':
+          description: Product list
+    post:
+      tags: [Products]
+      security: [{ SessionToken: [] }]
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, sku, unit_price_amount]
+              properties:
+                name: { type: string }
+                sku: { type: string }
+                unit_price_amount: { type: integer, minimum: 0 }
+                currency: { type: string, default: IRR }
+      responses:
+        '201':
+          description: Created
+  /stock/{productId}/adjust:
+    post:
+      tags: [Stock]
+      security: [{ SessionToken: [] }]
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: productId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, direction]
+              properties:
+                amount: { type: integer, minimum: 1 }
+                direction: { type: string, enum: [increase, decrease] }
+      responses:
+        '200':
+          description: Adjusted (or idempotent replay)
+        '400':
+          description: Missing Idempotency-Key
+        '409':
+          description: Idempotency conflict
+  /orders:
+    post:
+      tags: [Orders]
+      security: [{ SessionToken: [] }]
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201':
+          description: Draft order created
+        '200':
+          description: Idempotent replay
+  /orders/{id}/confirm:
+    post:
+      tags: [Orders]
+      security: [{ SessionToken: [] }]
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Confirmed (or replay)
+        '422':
+          description: Business rule / insufficient stock

@@ -78,7 +78,9 @@ final class OrderConfirmIdempotencyTest extends TestCase
 
         $orderId = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
             ->postJson('/api/orders')
+            ->assertCreated()
             ->json('data.id');
 
         $this->withToken($ctx['token'])
@@ -89,12 +91,15 @@ final class OrderConfirmIdempotencyTest extends TestCase
             ])
             ->assertOk();
 
+        // پاک کردن headerهای باقی‌مانده از create
+        $this->flushHeaders();
+
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            // عمداً بدون Idempotency-Key
             ->postJson('/api/orders/'.$orderId.'/confirm')
             ->assertStatus(400);
     }
-
     public function test_confirm_is_idempotent_and_does_not_double_consume_stock(): void
     {
         $ctx = $this->contextWithStock(10);
@@ -102,16 +107,23 @@ final class OrderConfirmIdempotencyTest extends TestCase
 
         $orderId = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'test-create-'.uniqid('', true))
             ->postJson('/api/orders')
+            ->assertCreated()
             ->json('data.id');
 
-        $this->withToken($ctx['token'])
+        $line = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
             ->postJson('/api/orders/'.$orderId.'/lines', [
                 'product_id' => $ctx['product_id'],
                 'quantity' => 3,
-            ])
-            ->assertOk();
+            ]);
+
+        if ($line->status() !== 200) {
+            dump($line->status(), $line->json());
+        }
+
+        $line->assertOk();
 
         $first = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
@@ -131,11 +143,11 @@ final class OrderConfirmIdempotencyTest extends TestCase
             ->assertJsonPath('data.status', 'confirmed')
             ->assertHeader('Idempotency-Replayed', 'true');
 
-        // Stock decreased only once: 10 - 3 = 7
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
             ->getJson('/api/stock/'.$ctx['product_id'])
             ->assertOk()
             ->assertJsonPath('data.quantity', 7);
     }
+
 }
