@@ -10,6 +10,7 @@ use StoreYar\Modules\Sales\Domain\Enums\OrderStatus;
 use StoreYar\Modules\Sales\Domain\Events\OrderConfirmed;
 use StoreYar\Modules\Sales\Domain\Events\OrderCreated;
 use StoreYar\Modules\Sales\Domain\Events\OrderLineAdded;
+use StoreYar\Modules\Sales\Domain\Events\OrderPaid;
 use StoreYar\Modules\Sales\Domain\Exceptions\DuplicateOrderLine;
 use StoreYar\Modules\Sales\Domain\Exceptions\EmptyOrder;
 use StoreYar\Modules\Sales\Domain\Exceptions\InvalidOrderState;
@@ -252,5 +253,30 @@ final class Order extends AggregateRoot
     public function version(): int
     {
         return $this->version;
+    }
+
+
+    public function markPaid(string $paymentId, DateTimeImmutable $now): void
+    {
+        if (! $this->status->canMarkPaid()) {
+            throw new InvalidOrderState('mark paid', $this->status);
+        }
+
+        if (trim($paymentId) === '') {
+            throw new \InvalidArgumentException('Payment ID is required.');
+        }
+
+        $this->status = OrderStatus::PAID;
+        $this->updatedAt = $now;
+        $this->version++;
+
+        $this->recordEvent(
+            new OrderPaid(
+                orderId: $this->id(),
+                organizationId: $this->organizationId,
+                paymentId: $paymentId,
+                occurredAt: $now,
+            ),
+        );
     }
 }

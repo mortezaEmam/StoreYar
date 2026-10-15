@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-// ListStockByOrganizationHandler.php
 namespace StoreYar\Modules\Inventory\Application\Queries\ListStockByOrganization;
 
 use StoreYar\Modules\Inventory\Domain\Contracts\StockItemRepository;
 use StoreYar\Shared\Application\Bus\Query\Query;
 use StoreYar\Shared\Application\Bus\Query\QueryHandler;
+use StoreYar\Shared\Application\Pagination\PageResult;
 
 final class ListStockByOrganizationHandler implements QueryHandler
 {
@@ -15,7 +15,7 @@ final class ListStockByOrganizationHandler implements QueryHandler
         private StockItemRepository $stockItems,
     ) {}
 
-    public function handle(Query $query): array
+    public function handle(Query $query): PageResult
     {
         if (! $query instanceof ListStockByOrganizationQuery) {
             throw new \InvalidArgumentException(
@@ -23,6 +23,9 @@ final class ListStockByOrganizationHandler implements QueryHandler
             );
         }
 
-        return $this->stockItems->findByOrganizationId($query->organizationId);
+        return $this->stockItems->findByOrganizationIdPaginated(
+            $query->organizationId,
+            $query->page,
+        );
     }
 }

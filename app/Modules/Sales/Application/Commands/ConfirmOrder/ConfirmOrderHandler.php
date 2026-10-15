@@ -45,7 +45,15 @@ final class ConfirmOrderHandler implements CommandHandler
                 ];
             }
 
-            $this->stock->consumeForOrder($command->organizationId, $lines);
+            $this->stock->reserveForOrder(
+                $command->organizationId,
+                $lines,
+            );
+
+            $this->stock->commitForOrder(
+                $command->organizationId,
+                $lines,
+            );
 
             $order->confirm($this->clock->now());
             $this->orders->save($order);

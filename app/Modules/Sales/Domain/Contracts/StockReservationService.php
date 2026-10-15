@@ -9,10 +9,20 @@ interface StockReservationService
     /**
      * @param list<array{product_id: string, quantity: int}> $lines
      */
-    public function consumeForOrder(string $organizationId, array $lines): void;
+    public function reserveForOrder(string $organizationId, array $lines): void;
 
     /**
      * @param list<array{product_id: string, quantity: int}> $lines
      */
-    public function restoreForOrder(string $organizationId, array $lines): void;
+    public function releaseForOrder(string $organizationId, array $lines): void;
+
+    /**
+     * @param list<array{product_id: string, quantity: int}> $lines
+     */
+    public function commitForOrder(string $organizationId, array $lines): void;
+
+    /**
+     * @param list<array{product_id: string, quantity: int}> $lines
+     */
+    public function restockForOrder(string $organizationId, array $lines): void;
 }

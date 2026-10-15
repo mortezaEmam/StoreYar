@@ -109,24 +109,29 @@ final class Payment extends AggregateRoot
     }
 
     public function markSucceeded(DateTimeImmutable $now): void
-    {
-        if (! $this->status->canComplete()) {
-            throw new InvalidPaymentState('complete', $this->status);
-        }
-
-        $this->status = PaymentStatus::SUCCEEDED;
-        $this->updatedAt = $now;
-        $this->version++;
-
-        $this->recordEvent(
-            new PaymentSucceeded(
-                paymentId: $this->id(),
-                organizationId: $this->organizationId,
-                orderId: $this->orderId,
-                occurredAt: $now,
-            ),
-        );
+{
+    // تکرار درخواست موفقیت برای پرداخت موفق، بدون اثر است.
+    if ($this->status === PaymentStatus::SUCCEEDED) {
+        return;
     }
+
+    if (! $this->status->canComplete()) {
+        throw new InvalidPaymentState('complete', $this->status);
+    }
+
+    $this->status = PaymentStatus::SUCCEEDED;
+    $this->updatedAt = $now;
+    $this->version++;
+
+    $this->recordEvent(
+        new PaymentSucceeded(
+            paymentId: $this->id(),
+            organizationId: $this->organizationId,
+            orderId: $this->orderId,
+            occurredAt: $now,
+        ),
+    );
+}
 
     public function markFailed(DateTimeImmutable $now, string $reason = ''): void
     {

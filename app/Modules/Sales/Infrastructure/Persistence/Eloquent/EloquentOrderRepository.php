@@ -13,6 +13,8 @@ use StoreYar\Modules\Sales\Domain\ValueObjects\Money;
 use StoreYar\Modules\Sales\Domain\ValueObjects\OrderId;
 use StoreYar\Modules\Sales\Domain\ValueObjects\OrderLineId;
 use StoreYar\Shared\Application\Errors\ConcurrencyError;
+use StoreYar\Shared\Application\Pagination\PageRequest;
+use StoreYar\Shared\Application\Pagination\PageResult;
 use StoreYar\Shared\Domain\Exceptions\ConcurrencyException;
 use StoreYar\Shared\Infrastructure\Concurrency\DatabaseVersionedUpdater;
 
@@ -154,4 +156,30 @@ final class EloquentOrderRepository implements OrderRepository
             version: (int) $model->version,
         );
     }
+
+    public function findByOrganizationIdPaginated(
+        string $organizationId,
+        PageRequest $page,
+    ): PageResult {
+        $base = OrderModel::query()->where('organization_id', $organizationId);
+
+        $total = (clone $base)->count();
+
+        $models = (clone $base)
+            ->with('lines')
+            ->orderByDesc('created_at')
+            ->offset($page->offset())
+            ->limit($page->perPage)
+            ->get();
+
+        return new PageResult(
+            items: $models->map(fn (OrderModel $model) => $this->toDomain($model))->all(),
+            total: $total,
+            page: $page->page,
+            perPage: $page->perPage,
+        );
+    }
+
+
+
 }

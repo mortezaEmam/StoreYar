@@ -9,6 +9,8 @@ use StoreYar\Modules\Catalog\Domain\Contracts\ProductRepository;
 use StoreYar\Modules\Catalog\Domain\Enums\ProductStatus;
 use StoreYar\Modules\Catalog\Domain\ValueObjects\ProductId;
 use StoreYar\Shared\Application\Errors\ConcurrencyError;
+use StoreYar\Shared\Application\Pagination\PageRequest;
+use StoreYar\Shared\Application\Pagination\PageResult;
 use StoreYar\Shared\Domain\Contracts\Outbox;
 use StoreYar\Shared\Domain\Exceptions\ConcurrencyException;
 use StoreYar\Shared\Infrastructure\Concurrency\DatabaseVersionedUpdater;
@@ -131,6 +133,30 @@ final class EloquentProductRepository implements ProductRepository
                 ? $model->updated_at
                 : \DateTimeImmutable::createFromInterface($model->updated_at),
             version: (int) $model->version,
+        );
+    }
+
+
+
+    public function findByOrganizationIdPaginated(
+        string $organizationId,
+        PageRequest $page,
+    ): PageResult {
+        $base = ProductModel::query()->where('organization_id', $organizationId);
+
+        $total = (clone $base)->count();
+
+        $models = (clone $base)
+            ->orderByDesc('created_at')
+            ->offset($page->offset())
+            ->limit($page->perPage)
+            ->get();
+
+        return new PageResult(
+            items: $models->map(fn (ProductModel $model) => $this->toDomain($model))->all(),
+            total: $total,
+            page: $page->page,
+            perPage: $page->perPage,
         );
     }
 }

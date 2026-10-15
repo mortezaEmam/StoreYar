@@ -68,7 +68,7 @@ final class ConfirmOrderHandlerTest extends TestCase
         $repository->expects($this->once())->method('save');
 
         $stock = $this->createMock(StockReservationService::class);
-        $stock->expects($this->once())->method('consumeForOrder');
+        $stock->expects($this->once())->method('commitForOrder');
 
         $clock = $this->createMock(Clock::class);
         $clock->method('now')->willReturn($this->now());
@@ -99,7 +99,7 @@ final class ConfirmOrderHandlerTest extends TestCase
         $repository->expects($this->never())->method('save');
 
         $stock = $this->createMock(StockReservationService::class);
-        $stock->method('consumeForOrder')->willThrowException(
+        $stock->method('commitForOrder')->willThrowException(
             new InsufficientStockForOrder('01JPROD0000000000000000001', 2, 0),
         );
 

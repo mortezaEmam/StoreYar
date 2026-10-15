@@ -37,8 +37,8 @@ final class CancelOrderHandler implements CommandHandler
                 throw new \InvalidArgumentException('Order not found.');
             }
 
-            // Snapshot BEFORE domain cancel — status changes inside cancel().
             $wasConfirmed = $order->status()->isConfirmed();
+            $wasDraft = $order->status()->isDraft();
 
             $lines = [];
             foreach ($order->lines() as $line) {
@@ -48,12 +48,14 @@ final class CancelOrderHandler implements CommandHandler
                 ];
             }
 
-            // Domain rules: draft|confirmed OK; cancelled throws InvalidOrderState
             $order->cancel($this->clock->now());
 
-            // Restock only if stock was consumed on confirm
-            if ($wasConfirmed && $lines !== []) {
-                $this->stock->restoreForOrder($command->organizationId, $lines);
+            if ($lines !== []) {
+                if ($wasDraft) {
+                    $this->stock->releaseForOrder($command->organizationId, $lines);
+                } elseif ($wasConfirmed) {
+                    $this->stock->restockForOrder($command->organizationId, $lines);
+                }
             }
 
             $this->orders->save($order);

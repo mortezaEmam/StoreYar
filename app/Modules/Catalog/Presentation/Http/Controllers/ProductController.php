@@ -21,6 +21,9 @@ use StoreYar\Modules\Catalog\Presentation\Http\Resources\ProductResource;
 use StoreYar\Shared\Application\Bus\Command\CommandBus;
 use StoreYar\Shared\Application\Bus\Query\QueryBus;
 use StoreYar\Shared\Application\Context\BusinessContext;
+use Illuminate\Http\Request;
+use StoreYar\Shared\Application\Pagination\PageRequest;
+use StoreYar\Shared\Application\Pagination\PageResult;
 
 final class ProductController
 {
@@ -31,17 +34,25 @@ final class ProductController
     ) {}
 
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $products = $this->queries->ask(
+        $page = PageRequest::fromQuery(
+            $request->query('page'),
+            $request->query('per_page'),
+        );
+
+        /** @var PageResult $result */
+        $result = $this->queries->ask(
             new ListProductsByOrganizationQuery(
                 organizationId: $this->business->businessId(),
+                page: $page,
             ),
         );
 
-        return ProductResource::collection($products)
-            ->response()
-            ->setStatusCode(200);
+        return response()->json([
+            'data' => ProductResource::collection($result->items)->resolve(),
+            'meta' => $result->toMeta(),
+        ]);
     }
 
     public function show(string $id): JsonResponse

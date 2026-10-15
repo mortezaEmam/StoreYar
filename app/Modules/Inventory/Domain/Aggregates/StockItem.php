@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace StoreYar\Modules\Inventory\Domain\Aggregates;
 
 use DateTimeImmutable;
+use StoreYar\Modules\Inventory\Domain\Events\StockAdjusted;
+use StoreYar\Modules\Inventory\Domain\Events\StockInitialized;
+use StoreYar\Modules\Inventory\Domain\Exceptions\InsufficientAvailableStock;
+use StoreYar\Modules\Inventory\Domain\Exceptions\InsufficientReservedStock;
 use StoreYar\Modules\Inventory\Domain\Exceptions\InsufficientStock;
 use StoreYar\Modules\Inventory\Domain\ValueObjects\StockItemId;
 use StoreYar\Shared\Domain\Aggregates\AggregateRoot;
-use StoreYar\Modules\Inventory\Domain\Events\StockAdjusted;
-use StoreYar\Modules\Inventory\Domain\Events\StockInitialized;
 
 final class StockItem extends AggregateRoot
 {
@@ -20,6 +22,7 @@ final class StockItem extends AggregateRoot
         private readonly string $organizationId,
         private readonly string $productId,
         private int $quantity,
+        private int $reservedQuantity,
         private readonly DateTimeImmutable $createdAt,
         private DateTimeImmutable $updatedAt,
     ) {
@@ -42,15 +45,15 @@ final class StockItem extends AggregateRoot
         }
 
         if ($quantity < 0) {
-            throw new \InvalidArgumentException('Quantity cannot be negative.');
+            throw new \InvalidArgumentException('Initial quantity cannot be negative.');
         }
-
 
         $item = new self(
             stockItemId: $id,
             organizationId: $organizationId,
             productId: $productId,
             quantity: $quantity,
+            reservedQuantity: 0,
             createdAt: $now,
             updatedAt: $now,
         );
@@ -73,6 +76,7 @@ final class StockItem extends AggregateRoot
         string $organizationId,
         string $productId,
         int $quantity,
+        int $reservedQuantity,
         DateTimeImmutable $createdAt,
         DateTimeImmutable $updatedAt,
         int $version,
@@ -82,10 +86,10 @@ final class StockItem extends AggregateRoot
             organizationId: $organizationId,
             productId: $productId,
             quantity: $quantity,
+            reservedQuantity: $reservedQuantity,
             createdAt: $createdAt,
             updatedAt: $updatedAt,
         );
-
         $item->version = $version;
 
         return $item;
@@ -140,6 +144,54 @@ final class StockItem extends AggregateRoot
             ),
         );
     }
+
+    public function reserve(int $amount, DateTimeImmutable $now): void
+    {
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('Reserve amount must be positive.');
+        }
+
+        if ($this->quantity < $amount) {
+            throw new InsufficientAvailableStock($this->quantity, $amount);
+        }
+
+        $this->quantity -= $amount;
+        $this->reservedQuantity += $amount;
+        $this->updatedAt = $now;
+        $this->version++;
+    }
+
+    public function release(int $amount, DateTimeImmutable $now): void
+    {
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('Release amount must be positive.');
+        }
+
+        if ($this->reservedQuantity < $amount) {
+            throw new InsufficientReservedStock($this->reservedQuantity, $amount);
+        }
+
+        $this->reservedQuantity -= $amount;
+        $this->quantity += $amount;
+        $this->updatedAt = $now;
+        $this->version++;
+    }
+
+    public function commitReserved(int $amount, DateTimeImmutable $now): void
+    {
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('Commit amount must be positive.');
+        }
+
+        if ($this->reservedQuantity < $amount) {
+            throw new InsufficientReservedStock($this->reservedQuantity, $amount);
+        }
+
+        $this->reservedQuantity -= $amount;
+        $this->updatedAt = $now;
+        $this->version++;
+    }
+
     public function stockItemId(): StockItemId
     {
         return $this->stockItemId;
@@ -158,6 +210,11 @@ final class StockItem extends AggregateRoot
     public function quantity(): int
     {
         return $this->quantity;
+    }
+
+    public function reservedQuantity(): int
+    {
+        return $this->reservedQuantity;
     }
 
     public function createdAt(): DateTimeImmutable

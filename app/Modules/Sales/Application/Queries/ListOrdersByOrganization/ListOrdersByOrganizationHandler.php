@@ -7,6 +7,7 @@ namespace StoreYar\Modules\Sales\Application\Queries\ListOrdersByOrganization;
 use StoreYar\Modules\Sales\Domain\Contracts\OrderRepository;
 use StoreYar\Shared\Application\Bus\Query\Query;
 use StoreYar\Shared\Application\Bus\Query\QueryHandler;
+use StoreYar\Shared\Application\Pagination\PageResult;
 
 final class ListOrdersByOrganizationHandler implements QueryHandler
 {
@@ -14,7 +15,7 @@ final class ListOrdersByOrganizationHandler implements QueryHandler
         private OrderRepository $orders,
     ) {}
 
-    public function handle(Query $query): array
+    public function handle(Query $query): PageResult
     {
         if (! $query instanceof ListOrdersByOrganizationQuery) {
             throw new \InvalidArgumentException(
@@ -22,6 +23,9 @@ final class ListOrdersByOrganizationHandler implements QueryHandler
             );
         }
 
-        return $this->orders->findByOrganizationId($query->organizationId);
+        return $this->orders->findByOrganizationIdPaginated(
+            $query->organizationId,
+            $query->page,
+        );
     }
 }

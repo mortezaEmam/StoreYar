@@ -19,6 +19,7 @@ final class StockItemModel extends Model
         'organization_id',
         'product_id',
         'quantity',
+        'reserved_quantity',
         'version',
     ];
 
@@ -26,6 +27,7 @@ final class StockItemModel extends Model
     {
         return [
             'quantity' => 'integer',
+            'reserved_quantity' => 'integer',
             'version' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',

@@ -18,26 +18,43 @@ final class PaymentApiTest extends TestCase
     /**
      * @return array{token: string, organization_id: string, order_id: string, product_id: string}
      */
+
+    /**
+     * @return array{
+     *     token: string,
+     *     organization_id: string,
+     *     order_id: string,
+     *     product_id: string
+     * }
+     */
     private function contextWithConfirmedOrder(): array
     {
         $commands = $this->app->make(CommandBus::class);
 
         /** @var User $user */
         $user = $commands->dispatch(
-            new CreateUserCommand(email: 'pay@example.com', name: 'Pay User'),
+            new CreateUserCommand(
+                email: 'pay@example.com',
+                name: 'Pay User',
+            ),
         );
 
         $commands->dispatch(
-            new SetPasswordCommand(userId: (string) $user->id(), password: 'password123'),
+            new SetPasswordCommand(
+                userId: (string) $user->id(),
+                password: 'password123',
+            ),
         );
 
         $token = $this->postJson('/api/auth/login', [
             'email' => 'pay@example.com',
             'password' => 'password123',
-        ])->json('data.token');
+        ])->assertOk()->json('data.token');
 
         $orgId = $this->withToken($token)
-            ->postJson('/api/organizations', ['name' => 'Pay Shop'])
+            ->postJson('/api/organizations', [
+                'name' => 'Pay Shop',
+            ])
             ->assertCreated()
             ->json('data.id');
 
@@ -60,26 +77,11 @@ final class PaymentApiTest extends TestCase
             ])
             ->assertCreated();
 
-        $orderId = $this->withToken($token)
-            ->withHeader('X-Business-Id', $orgId)
-            ->withHeader('Idempotency-Key', 'create-'.uniqid('', true))
-            ->postJson('/api/orders')
-            ->assertCreated()
-            ->json('data.id');
-
-        $this->withToken($token)
-            ->withHeader('X-Business-Id', $orgId)
-            ->postJson('/api/orders/'.$orderId.'/lines', [
-                'product_id' => $productId,
-                'quantity' => 2,
-            ])
-            ->assertOk();
-
-        $this->withToken($token)
-            ->withHeader('X-Business-Id', $orgId)
-            ->withHeader('Idempotency-Key', 'confirm-'.uniqid('', true))
-            ->postJson('/api/orders/'.$orderId.'/confirm')
-            ->assertOk();
+        $orderId = $this->createConfirmedOrder(
+            $token,
+            $orgId,
+            $productId,
+        );
 
         return [
             'token' => $token,
@@ -88,6 +90,39 @@ final class PaymentApiTest extends TestCase
             'product_id' => $productId,
         ];
     }
+
+    /**
+     * Creates and confirms an order for an existing organization and product.
+     */
+    private function createConfirmedOrder(
+        string $token,
+        string $organizationId,
+        string $productId,
+    ): string {
+        $orderId = $this->withToken($token)
+            ->withHeader('X-Business-Id', $organizationId)
+            ->withHeader('Idempotency-Key', 'create-'.uniqid('', true))
+            ->postJson('/api/orders')
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->withToken($token)
+            ->withHeader('X-Business-Id', $organizationId)
+            ->postJson('/api/orders/'.$orderId.'/lines', [
+                'product_id' => $productId,
+                'quantity' => 2,
+            ])
+            ->assertOk();
+
+        $this->withToken($token)
+            ->withHeader('X-Business-Id', $organizationId)
+            ->withHeader('Idempotency-Key', 'confirm-'.uniqid('', true))
+            ->postJson('/api/orders/'.$orderId.'/confirm')
+            ->assertOk();
+
+        return $orderId;
+    }
+
 
     public function test_initiate_requires_idempotency_key(): void
     {
@@ -166,10 +201,13 @@ final class PaymentApiTest extends TestCase
         );
     }
 
+
+
     public function test_succeed_and_fail_payment(): void
     {
         $ctx = $this->contextWithConfirmedOrder();
 
+        // First payment: succeeds.
         $id = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
             ->withHeader('Idempotency-Key', 'pay-'.uniqid('', true))
@@ -185,11 +223,19 @@ final class PaymentApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'succeeded');
 
+        // Create another confirmed order in the same organization.
+        $secondOrderId = $this->createConfirmedOrder(
+            $ctx['token'],
+            $ctx['organization_id'],
+            $ctx['product_id'],
+        );
+
+        // Second payment: fails.
         $id2 = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
             ->withHeader('Idempotency-Key', 'pay2-'.uniqid('', true))
             ->postJson('/api/payments', [
-                'order_id' => $ctx['order_id'],
+                'order_id' => $secondOrderId,
             ])
             ->assertCreated()
             ->json('data.id');
@@ -201,5 +247,18 @@ final class PaymentApiTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonPath('data.status', 'failed');
+
+        // Repeating success on the first payment must remain successful.
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->postJson('/api/payments/'.$id.'/succeed')
+            ->assertOk()
+            ->assertJsonPath('data.status', 'succeeded');
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->getJson('/api/orders/'.$ctx['order_id'])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'paid');
     }
 }

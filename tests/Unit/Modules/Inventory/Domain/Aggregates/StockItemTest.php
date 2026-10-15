@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use PHPUnit\Framework\TestCase;
 use StoreYar\Modules\Inventory\Domain\Aggregates\StockItem;
+use StoreYar\Modules\Inventory\Domain\Exceptions\InsufficientAvailableStock;
 use StoreYar\Modules\Inventory\Domain\Exceptions\InsufficientStock;
 use StoreYar\Modules\Inventory\Domain\ValueObjects\StockItemId;
 
@@ -95,5 +96,56 @@ final class StockItemTest extends TestCase
             quantity: -1,
             now: $this->now(),
         );
+    }
+
+
+    public function test_it_reserves_and_commits(): void
+    {
+        $item = StockItem::create(
+            id: StockItemId::generate(),
+            organizationId: '01JORG00000000000000000001',
+            productId: '01JPROD0000000000000000001',
+            quantity: 10,
+            now: $this->now(),
+        );
+        $item->pullDomainEvents();
+
+        $item->reserve(3, $this->now());
+        self::assertSame(7, $item->quantity());
+        self::assertSame(3, $item->reservedQuantity());
+
+        $item->commitReserved(3, $this->now());
+        self::assertSame(7, $item->quantity());
+        self::assertSame(0, $item->reservedQuantity());
+    }
+
+    public function test_it_releases_reservation(): void
+    {
+        $item = StockItem::create(
+            id: StockItemId::generate(),
+            organizationId: '01JORG00000000000000000001',
+            productId: '01JPROD0000000000000000001',
+            quantity: 10,
+            now: $this->now(),
+        );;
+        $item->pullDomainEvents();
+        $item->reserve(4, $this->now());
+        $item->release(4, $this->now());
+
+        self::assertSame(10, $item->quantity());
+        self::assertSame(0, $item->reservedQuantity());
+    }
+
+    public function test_it_rejects_reserve_when_insufficient(): void
+    {
+        $item = StockItem::create(
+            id: StockItemId::generate(),
+            organizationId: '01JORG00000000000000000001',
+            productId: '01JPROD0000000000000000001',
+            quantity: 10,
+            now: $this->now(),
+        );;
+        $this->expectException(InsufficientAvailableStock::class);
+        $item->reserve(5, $this->now());
     }
 }

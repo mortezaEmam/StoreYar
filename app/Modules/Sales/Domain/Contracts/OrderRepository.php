@@ -6,6 +6,8 @@ namespace StoreYar\Modules\Sales\Domain\Contracts;
 
 use StoreYar\Modules\Sales\Domain\Aggregates\Order;
 use StoreYar\Modules\Sales\Domain\ValueObjects\OrderId;
+use StoreYar\Shared\Application\Pagination\PageRequest;
+use StoreYar\Shared\Application\Pagination\PageResult;
 
 interface OrderRepository
 {
@@ -17,4 +19,14 @@ interface OrderRepository
     public function findByOrganizationId(string $organizationId): array;
 
     public function save(Order $order): void;
+
+
+    /**
+     * @return PageResult<\StoreYar\Modules\Sales\Domain\Aggregates\Order>
+     */
+    public function findByOrganizationIdPaginated(
+        string $organizationId,
+        PageRequest $page,
+    ): PageResult;
+
 }

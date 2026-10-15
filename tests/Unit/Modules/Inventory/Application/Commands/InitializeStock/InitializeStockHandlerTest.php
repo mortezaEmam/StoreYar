@@ -77,6 +77,7 @@ final class InitializeStockHandlerTest extends TestCase
             organizationId: '01JORG00000000000000000001',
             productId: '01JPROD0000000000000000001',
             quantity: 1,
+            reservedQuantity: 1,
             createdAt: new DateTimeImmutable(
                 'now',
                 new DateTimeZone('UTC'),

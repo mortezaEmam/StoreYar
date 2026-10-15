@@ -57,5 +57,10 @@ final class SalesServiceProvider extends ServiceProvider
         $queries->register(ListOrdersByOrganizationQuery::class, ListOrdersByOrganizationHandler::class);
 
 
+        $commands->register(
+            \StoreYar\Modules\Sales\Application\Commands\MarkOrderPaid\MarkOrderPaidCommand::class,
+            \StoreYar\Modules\Sales\Application\Commands\MarkOrderPaid\MarkOrderPaidHandler::class,
+        );
+
     }
 }

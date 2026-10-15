@@ -8,6 +8,7 @@ enum OrderStatus: string
 {
     case DRAFT = 'draft';
     case CONFIRMED = 'confirmed';
+    case PAID = 'paid';
     case CANCELLED = 'cancelled';
 
     public function isDraft(): bool
@@ -18,6 +19,11 @@ enum OrderStatus: string
     public function isConfirmed(): bool
     {
         return $this === self::CONFIRMED;
+    }
+
+    public function isPaid(): bool
+    {
+        return $this === self::PAID;
     }
 
     public function isCancelled(): bool
@@ -33,6 +39,11 @@ enum OrderStatus: string
     public function canConfirm(): bool
     {
         return $this === self::DRAFT;
+    }
+
+    public function canMarkPaid(): bool
+    {
+        return $this === self::CONFIRMED;
     }
 
     public function canCancel(): bool

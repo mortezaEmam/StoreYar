@@ -23,6 +23,9 @@ use StoreYar\Shared\Application\Bus\Query\QueryBus;
 use StoreYar\Shared\Application\Context\BusinessContext;
 use StoreYar\Shared\Application\Idempotency\IdempotencyKey;
 use StoreYar\Shared\Domain\Exceptions\IdempotencyConflictException;
+use Illuminate\Http\Request;
+use StoreYar\Shared\Application\Pagination\PageRequest;
+use StoreYar\Shared\Application\Pagination\PageResult;
 
 final class StockController
 {
@@ -34,17 +37,25 @@ final class StockController
         private InitializeStockIdempotently $initializeStockIdempotently,
     ) {}
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $items = $this->queries->ask(
+        $page = PageRequest::fromQuery(
+            $request->query('page'),
+            $request->query('per_page'),
+        );
+
+        /** @var PageResult $result */
+        $result = $this->queries->ask(
             new ListStockByOrganizationQuery(
                 organizationId: $this->business->businessId(),
+                page: $page,
             ),
         );
 
-        return StockItemResource::collection($items)
-            ->response()
-            ->setStatusCode(200);
+        return response()->json([
+            'data' => StockItemResource::collection($result->items)->resolve(),
+            'meta' => $result->toMeta(),
+        ]);
     }
 
     public function show(string $productId): JsonResponse

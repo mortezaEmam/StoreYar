@@ -7,6 +7,7 @@ namespace StoreYar\Modules\Catalog\Application\Queries\ListProductsByOrganizatio
 use StoreYar\Modules\Catalog\Domain\Contracts\ProductRepository;
 use StoreYar\Shared\Application\Bus\Query\Query;
 use StoreYar\Shared\Application\Bus\Query\QueryHandler;
+use StoreYar\Shared\Application\Pagination\PageResult;
 
 final class ListProductsByOrganizationHandler implements QueryHandler
 {
@@ -14,10 +15,7 @@ final class ListProductsByOrganizationHandler implements QueryHandler
         private ProductRepository $products,
     ) {}
 
-    /**
-     * @return list<\StoreYar\Modules\Catalog\Domain\Aggregates\Product>
-     */
-    public function handle(Query $query): array
+    public function handle(Query $query): PageResult
     {
         if (! $query instanceof ListProductsByOrganizationQuery) {
             throw new \InvalidArgumentException(
@@ -25,6 +23,9 @@ final class ListProductsByOrganizationHandler implements QueryHandler
             );
         }
 
-        return $this->products->findByOrganizationId($query->organizationId);
+        return $this->products->findByOrganizationIdPaginated(
+            $query->organizationId,
+            $query->page,
+        );
     }
 }

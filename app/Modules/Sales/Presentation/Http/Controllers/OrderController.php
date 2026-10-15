@@ -29,6 +29,8 @@ use StoreYar\Shared\Application\Bus\Command\CommandBus;
 use StoreYar\Shared\Application\Bus\Query\QueryBus;
 use StoreYar\Shared\Application\Context\BusinessContext;
 use StoreYar\Shared\Application\Idempotency\IdempotencyKey;
+use StoreYar\Shared\Application\Pagination\PageRequest;
+use StoreYar\Shared\Application\Pagination\PageResult;
 use StoreYar\Shared\Domain\Exceptions\IdempotencyConflictException;
 
 final class OrderController
@@ -43,15 +45,25 @@ final class OrderController
         private CancelOrderIdempotently $cancelOrderIdempotently,
     ) {}
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $orders = $this->queries->ask(
+        $page = PageRequest::fromQuery(
+            $request->query('page'),
+            $request->query('per_page'),
+        );
+
+        /** @var PageResult $result */
+        $result = $this->queries->ask(
             new ListOrdersByOrganizationQuery(
                 organizationId: $this->business->businessId(),
+                page: $page,
             ),
         );
 
-        return OrderResource::collection($orders)->response();
+        return response()->json([
+            'data' => OrderResource::collection($result->items)->resolve(),
+            'meta' => $result->toMeta(),
+        ]);
     }
 
     public function show(string $id): JsonResponse

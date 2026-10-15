@@ -21,6 +21,7 @@ final class StockItemResource extends JsonResource
             'organization_id' => $item->organizationId(),
             'product_id' => $item->productId(),
             'quantity' => $item->quantity(),
+            'reserved_quantity' => $item->reservedQuantity(),
             'created_at' => $item->createdAt()->format(\DateTimeInterface::ATOM),
             'updated_at' => $item->updatedAt()->format(\DateTimeInterface::ATOM),
         ];

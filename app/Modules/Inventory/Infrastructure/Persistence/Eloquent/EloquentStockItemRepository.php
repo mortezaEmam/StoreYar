@@ -8,6 +8,8 @@ use StoreYar\Modules\Inventory\Domain\Aggregates\StockItem;
 use StoreYar\Modules\Inventory\Domain\Contracts\StockItemRepository;
 use StoreYar\Modules\Inventory\Domain\ValueObjects\StockItemId;
 use StoreYar\Shared\Application\Errors\ConcurrencyError;
+use StoreYar\Shared\Application\Pagination\PageRequest;
+use StoreYar\Shared\Application\Pagination\PageResult;
 use StoreYar\Shared\Domain\Contracts\Outbox;
 use StoreYar\Shared\Domain\Exceptions\ConcurrencyException;
 use StoreYar\Shared\Infrastructure\Concurrency\DatabaseVersionedUpdater;
@@ -61,6 +63,7 @@ final class EloquentStockItemRepository implements StockItemRepository
                 'organization_id' => $stockItem->organizationId(),
                 'product_id' => $stockItem->productId(),
                 'quantity' => $stockItem->quantity(),
+                'reserved_quantity' => $stockItem->reservedQuantity(),
                 'version' => $stockItem->version(),
                 'created_at' => $stockItem->createdAt(),
                 'updated_at' => $stockItem->updatedAt(),
@@ -82,6 +85,7 @@ final class EloquentStockItemRepository implements StockItemRepository
                     'organization_id' => $stockItem->organizationId(),
                     'product_id' => $stockItem->productId(),
                     'quantity' => $stockItem->quantity(),
+                    'reserved_quantity' => $stockItem->reservedQuantity(),
                 ],
             );
 
@@ -114,6 +118,7 @@ final class EloquentStockItemRepository implements StockItemRepository
             organizationId: $model->organization_id,
             productId: $model->product_id,
             quantity: (int) $model->quantity,
+            reservedQuantity: (int) $model->reserved_quantity,
             createdAt: $model->created_at instanceof \DateTimeImmutable
                 ? $model->created_at
                 : \DateTimeImmutable::createFromInterface($model->created_at),
@@ -121,6 +126,29 @@ final class EloquentStockItemRepository implements StockItemRepository
                 ? $model->updated_at
                 : \DateTimeImmutable::createFromInterface($model->updated_at),
             version: (int) $model->version,
+        );
+    }
+
+
+    public function findByOrganizationIdPaginated(
+        string $organizationId,
+        PageRequest $page,
+    ): PageResult {
+        $base = StockItemModel::query()->where('organization_id', $organizationId);
+
+        $total = (clone $base)->count();
+
+        $models = (clone $base)
+            ->orderByDesc('created_at')
+            ->offset($page->offset())
+            ->limit($page->perPage)
+            ->get();
+
+        return new PageResult(
+            items: $models->map(fn (StockItemModel $model) => $this->toDomain($model))->all(),
+            total: $total,
+            page: $page->page,
+            perPage: $page->perPage,
         );
     }
 }
