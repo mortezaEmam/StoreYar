@@ -15,6 +15,7 @@ use StoreYar\Modules\Shipping\Application\Queries\GetShipmentById\GetShipmentByI
 use StoreYar\Modules\Shipping\Application\Queries\GetShipmentById\GetShipmentByIdQuery;
 use StoreYar\Modules\Shipping\Application\Queries\ListShipmentsByOrganization\ListShipmentsByOrganizationHandler;
 use StoreYar\Modules\Shipping\Application\Queries\ListShipmentsByOrganization\ListShipmentsByOrganizationQuery;
+use StoreYar\Modules\Shipping\Application\Services\CreateShipmentIdempotently;
 use StoreYar\Modules\Shipping\Domain\Contracts\ShipmentRepository;
 use StoreYar\Modules\Shipping\Domain\Contracts\ShippableOrderGateway;
 use StoreYar\Modules\Shipping\Infrastructure\Persistence\Eloquent\EloquentShipmentRepository;
@@ -26,6 +27,9 @@ final class ShippingServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(CreateShipmentIdempotently::class);
+
+
         $this->app->singleton(
             ShipmentRepository::class,
             EloquentShipmentRepository::class,

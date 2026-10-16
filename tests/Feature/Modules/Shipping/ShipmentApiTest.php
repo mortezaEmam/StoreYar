@@ -112,9 +112,8 @@ final class ShipmentApiTest extends TestCase
 
         $id = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->postJson('/api/shipments', [
-                'order_id' => $ctx['order_id'],
-            ])
+            ->withHeader('Idempotency-Key', 'ship-create-'.uniqid('', true))
+            ->postJson('/api/shipments', ['order_id' => $ctx['order_id']])
             ->assertCreated()
             ->assertJsonPath('data.status', 'pending')
             ->assertJsonPath('data.order_id', $ctx['order_id'])
@@ -161,16 +160,56 @@ final class ShipmentApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
-            ->postJson('/api/shipments', [
-                'order_id' => $ctx['order_id'],
-            ])
+            ->withHeader('Idempotency-Key', 'ship-create-'.uniqid('', true))
+            ->postJson('/api/shipments', ['order_id' => $ctx['order_id']])
             ->assertCreated();
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'ship-create-'.uniqid('', true))
+            ->postJson('/api/shipments', ['order_id' => $ctx['order_id']])
+            ->assertUnprocessable();
+    }
+
+
+    public function test_create_requires_idempotency_key(): void
+    {
+        $ctx = $this->contextWithPaidOrder();
+        $this->flushHeaders();
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
             ->postJson('/api/shipments', [
                 'order_id' => $ctx['order_id'],
             ])
-            ->assertUnprocessable();
+            ->assertStatus(400);
+    }
+
+    public function test_create_shipment_is_idempotent(): void
+    {
+        $ctx = $this->contextWithPaidOrder();
+        $key = 'ship-idem-'.uniqid('', true);
+
+        $first = $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/shipments', [
+                'order_id' => $ctx['order_id'],
+            ])
+            ->assertCreated();
+
+        $second = $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/shipments', [
+                'order_id' => $ctx['order_id'],
+            ])
+            ->assertOk()
+            ->assertHeader('Idempotency-Replayed', 'true');
+
+        $this->assertSame(
+            $first->json('data.id'),
+            $second->json('data.id'),
+        );
     }
 }
