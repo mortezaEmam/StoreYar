@@ -11,6 +11,7 @@ use StoreYar\Modules\Sales\Domain\Events\OrderConfirmed;
 use StoreYar\Modules\Sales\Domain\Events\OrderCreated;
 use StoreYar\Modules\Sales\Domain\Events\OrderLineAdded;
 use StoreYar\Modules\Sales\Domain\Events\OrderPaid;
+use StoreYar\Modules\Sales\Domain\Events\OrderPaymentReverted;
 use StoreYar\Modules\Sales\Domain\Exceptions\DuplicateOrderLine;
 use StoreYar\Modules\Sales\Domain\Exceptions\EmptyOrder;
 use StoreYar\Modules\Sales\Domain\Exceptions\InvalidOrderState;
@@ -272,6 +273,27 @@ final class Order extends AggregateRoot
 
         $this->recordEvent(
             new OrderPaid(
+                orderId: $this->id(),
+                organizationId: $this->organizationId,
+                paymentId: $paymentId,
+                occurredAt: $now,
+            ),
+        );
+    }
+
+
+    public function revertPayment(string $paymentId, DateTimeImmutable $now): void
+    {
+        if (! $this->status->canRevertPaid()) {
+            throw new InvalidOrderState('revert payment', $this->status);
+        }
+
+        $this->status = OrderStatus::CONFIRMED;
+        $this->updatedAt = $now;
+        $this->version++;
+
+        $this->recordEvent(
+            new OrderPaymentReverted(
                 orderId: $this->id(),
                 organizationId: $this->organizationId,
                 paymentId: $paymentId,

@@ -73,5 +73,11 @@ final class PaymentsServiceProvider extends ServiceProvider
             ListPaymentsByOrganizationQuery::class,
             ListPaymentsByOrganizationHandler::class,
         );
+
+
+        $commands->register(
+            \StoreYar\Modules\Payments\Application\Commands\RefundPayment\RefundPaymentCommand::class,
+            \StoreYar\Modules\Payments\Application\Commands\RefundPayment\RefundPaymentHandler::class,
+        );
     }
 }

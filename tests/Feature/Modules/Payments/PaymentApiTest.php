@@ -261,4 +261,41 @@ final class PaymentApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'paid');
     }
+
+
+    public function test_refund_succeeded_payment_reverts_order(): void
+    {
+        $ctx = $this->contextWithConfirmedOrder();
+
+        $id = $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'pay-'.uniqid('', true))
+            ->postJson('/api/payments', ['order_id' => $ctx['order_id']])
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->postJson('/api/payments/'.$id.'/succeed')
+            ->assertOk()
+            ->assertJsonPath('data.status', 'succeeded');
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->getJson('/api/orders/'.$ctx['order_id'])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'paid');
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->postJson('/api/payments/'.$id.'/refund', ['reason' => 'customer request'])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'refunded');
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->getJson('/api/orders/'.$ctx['order_id'])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'confirmed');
+    }
 }

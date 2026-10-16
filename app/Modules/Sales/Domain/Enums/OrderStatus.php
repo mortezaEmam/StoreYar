@@ -46,8 +46,16 @@ enum OrderStatus: string
         return $this === self::CONFIRMED;
     }
 
+
+    public function canRevertPaid(): bool
+    {
+        return $this === self::PAID;
+    }
+
     public function canCancel(): bool
     {
-        return $this === self::DRAFT || $this === self::CONFIRMED;
+        return $this === self::DRAFT
+            || $this === self::CONFIRMED
+            || $this === self::PAID;
     }
 }

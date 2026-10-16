@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use StoreYar\Modules\Payments\Domain\Enums\PaymentStatus;
 use StoreYar\Modules\Payments\Domain\Events\PaymentFailed;
 use StoreYar\Modules\Payments\Domain\Events\PaymentInitiated;
+use StoreYar\Modules\Payments\Domain\Events\PaymentRefunded;
 use StoreYar\Modules\Payments\Domain\Events\PaymentSucceeded;
 use StoreYar\Modules\Payments\Domain\Exceptions\InvalidPaymentState;
 use StoreYar\Modules\Payments\Domain\ValueObjects\PaymentId;
@@ -197,5 +198,28 @@ final class Payment extends AggregateRoot
     public function version(): int
     {
         return $this->version;
+    }
+
+
+
+    public function refund(DateTimeImmutable $now, string $reason = ''): void
+    {
+        if (! $this->status->canRefund()) {
+            throw new InvalidPaymentState('refund', $this->status);
+        }
+
+        $this->status = PaymentStatus::REFUNDED;
+        $this->updatedAt = $now;
+        $this->version++;
+
+        $this->recordEvent(
+            new PaymentRefunded(
+                paymentId: $this->id(),
+                organizationId: $this->organizationId,
+                orderId: $this->orderId,
+                reason: $reason,
+                occurredAt: $now,
+            ),
+        );
     }
 }

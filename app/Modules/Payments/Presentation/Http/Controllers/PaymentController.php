@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use StoreYar\Modules\Payments\Application\Commands\CompletePayment\CompletePaymentCommand;
 use StoreYar\Modules\Payments\Application\Commands\FailPayment\FailPaymentCommand;
+use StoreYar\Modules\Payments\Application\Commands\RefundPayment\RefundPaymentCommand;
 use StoreYar\Modules\Payments\Application\Queries\GetPaymentById\GetPaymentByIdQuery;
 use StoreYar\Modules\Payments\Application\Queries\ListPaymentsByOrganization\ListPaymentsByOrganizationQuery;
 use StoreYar\Modules\Payments\Application\Services\InitiatePaymentIdempotently;
@@ -121,6 +122,29 @@ final class PaymentController
         try {
             $payment = $this->commands->dispatch(
                 new FailPaymentCommand(
+                    organizationId: $this->business->businessId(),
+                    paymentId: $id,
+                    reason: $request->string('reason')->toString(),
+                ),
+            );
+
+            return (new PaymentResource($payment))->response();
+        } catch (InvalidPaymentState $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\InvalidArgumentException $e) {
+            $status = $e->getMessage() === 'Payment not found.' ? 404 : 422;
+
+            return response()->json(['message' => $e->getMessage()], $status);
+        }
+    }
+
+
+
+    public function refund(Request $request, string $id): JsonResponse
+    {
+        try {
+            $payment = $this->commands->dispatch(
+                new RefundPaymentCommand(
                     organizationId: $this->business->businessId(),
                     paymentId: $id,
                     reason: $request->string('reason')->toString(),

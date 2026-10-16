@@ -9,6 +9,7 @@ use StoreYar\Modules\Inventory\Infrastructure\InventoryServiceProvider;
 use StoreYar\Modules\Organization\Infrastructure\OrganizationServiceProvider;
 use StoreYar\Modules\Payments\Infrastructure\PaymentsServiceProvider;
 use StoreYar\Modules\Sales\Infrastructure\SalesServiceProvider;
+use StoreYar\Modules\Shipping\Infrastructure\ShippingServiceProvider;
 use StoreYar\Shared\Infrastructure\Providers\SharedServiceProvider as SharedInfrastructureServiceProvider;
 
 return [
@@ -23,4 +24,5 @@ return [
     InventoryServiceProvider::class,
     SalesServiceProvider::class,
     PaymentsServiceProvider::class,
+    ShippingServiceProvider::class,
 ];

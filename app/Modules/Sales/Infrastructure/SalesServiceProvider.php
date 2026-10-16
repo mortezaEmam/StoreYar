@@ -62,5 +62,9 @@ final class SalesServiceProvider extends ServiceProvider
             \StoreYar\Modules\Sales\Application\Commands\MarkOrderPaid\MarkOrderPaidHandler::class,
         );
 
+        $commands->register(
+            \StoreYar\Modules\Sales\Application\Commands\RevertOrderPayment\RevertOrderPaymentCommand::class,
+            \StoreYar\Modules\Sales\Application\Commands\RevertOrderPayment\RevertOrderPaymentHandler::class,
+        );
     }
 }
