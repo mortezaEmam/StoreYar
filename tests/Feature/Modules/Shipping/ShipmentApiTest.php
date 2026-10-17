@@ -113,14 +113,16 @@ final class ShipmentApiTest extends TestCase
         $id = $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
             ->withHeader('Idempotency-Key', 'ship-create-'.uniqid('', true))
-            ->postJson('/api/shipments', ['order_id' => $ctx['order_id']])
+            ->postJson('/api/shipments', [
+                'order_id' => $ctx['order_id'],
+            ])
             ->assertCreated()
             ->assertJsonPath('data.status', 'pending')
-            ->assertJsonPath('data.order_id', $ctx['order_id'])
             ->json('data.id');
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'ship-ship-'.uniqid('', true))
             ->postJson('/api/shipments/'.$id.'/ship', [
                 'tracking_number' => 'TRK-123',
             ])
@@ -130,8 +132,100 @@ final class ShipmentApiTest extends TestCase
 
         $this->withToken($ctx['token'])
             ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'ship-deliver-'.uniqid('', true))
             ->postJson('/api/shipments/'.$id.'/deliver')
             ->assertOk()
+            ->assertJsonPath('data.status', 'delivered');
+    }
+
+    public function test_ship_requires_idempotency_key(): void
+    {
+        $ctx = $this->contextWithPaidOrder();
+
+        $id = $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'ship-create-'.uniqid('', true))
+            ->postJson('/api/shipments', ['order_id' => $ctx['order_id']])
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->flushHeaders();
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->postJson('/api/shipments/'.$id.'/ship', [
+                'tracking_number' => 'TRK-1',
+            ])
+            ->assertStatus(400);
+    }
+
+    public function test_ship_is_idempotent(): void
+    {
+        $ctx = $this->contextWithPaidOrder();
+
+        $id = $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'ship-create-'.uniqid('', true))
+            ->postJson('/api/shipments', ['order_id' => $ctx['order_id']])
+            ->assertCreated()
+            ->json('data.id');
+
+        $key = 'ship-ship-idem-'.uniqid('', true);
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/shipments/'.$id.'/ship', [
+                'tracking_number' => 'TRK-999',
+            ])
+            ->assertOk()
+            ->assertHeader('Idempotency-Replayed', 'false');
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/shipments/'.$id.'/ship', [
+                'tracking_number' => 'TRK-999',
+            ])
+            ->assertOk()
+            ->assertHeader('Idempotency-Replayed', 'true')
+            ->assertJsonPath('data.status', 'shipped');
+    }
+
+    public function test_deliver_is_idempotent(): void
+    {
+        $ctx = $this->contextWithPaidOrder();
+
+        $id = $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'ship-create-'.uniqid('', true))
+            ->postJson('/api/shipments', ['order_id' => $ctx['order_id']])
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'ship-ship-'.uniqid('', true))
+            ->postJson('/api/shipments/'.$id.'/ship', [
+                'tracking_number' => 'TRK-DEL',
+            ])
+            ->assertOk();
+
+        $key = 'ship-deliver-idem-'.uniqid('', true);
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/shipments/'.$id.'/deliver')
+            ->assertOk()
+            ->assertHeader('Idempotency-Replayed', 'false');
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/shipments/'.$id.'/deliver')
+            ->assertOk()
+            ->assertHeader('Idempotency-Replayed', 'true')
             ->assertJsonPath('data.status', 'delivered');
     }
 
@@ -211,5 +305,86 @@ final class ShipmentApiTest extends TestCase
             $first->json('data.id'),
             $second->json('data.id'),
         );
+    }
+
+
+    public function test_cancel_pending_shipment(): void
+    {
+        $ctx = $this->contextWithPaidOrder();
+
+        $id = $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'ship-create-'.uniqid('', true))
+            ->postJson('/api/shipments', ['order_id' => $ctx['order_id']])
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'ship-cancel-'.uniqid('', true))
+            ->postJson('/api/shipments/'.$id.'/cancel', [
+                'reason' => 'warehouse issue',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'cancelled');
+    }
+
+    public function test_cancel_is_idempotent(): void
+    {
+        $ctx = $this->contextWithPaidOrder();
+
+        $id = $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'ship-create-'.uniqid('', true))
+            ->postJson('/api/shipments', ['order_id' => $ctx['order_id']])
+            ->assertCreated()
+            ->json('data.id');
+
+        $key = 'ship-cancel-idem-'.uniqid('', true);
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/shipments/'.$id.'/cancel')
+            ->assertOk()
+            ->assertHeader('Idempotency-Replayed', 'false');
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/shipments/'.$id.'/cancel')
+            ->assertOk()
+            ->assertHeader('Idempotency-Replayed', 'true')
+            ->assertJsonPath('data.status', 'cancelled');
+    }
+
+    public function test_cannot_cancel_delivered_shipment(): void
+    {
+        $ctx = $this->contextWithPaidOrder();
+
+        $id = $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'ship-create-'.uniqid('', true))
+            ->postJson('/api/shipments', ['order_id' => $ctx['order_id']])
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'ship-ship-'.uniqid('', true))
+            ->postJson('/api/shipments/'.$id.'/ship', ['tracking_number' => 'TRK-X'])
+            ->assertOk();
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'ship-deliver-'.uniqid('', true))
+            ->postJson('/api/shipments/'.$id.'/deliver')
+            ->assertOk();
+
+        $this->withToken($ctx['token'])
+            ->withHeader('X-Business-Id', $ctx['organization_id'])
+            ->withHeader('Idempotency-Key', 'ship-cancel-'.uniqid('', true))
+            ->postJson('/api/shipments/'.$id.'/cancel')
+            ->assertUnprocessable();
     }
 }

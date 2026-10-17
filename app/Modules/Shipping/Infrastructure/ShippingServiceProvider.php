@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace StoreYar\Modules\Shipping\Infrastructure;
 
 use Illuminate\Support\ServiceProvider;
+use StoreYar\Modules\Shipping\Application\Commands\CancelShipment\CancelShipmentCommand;
+use StoreYar\Modules\Shipping\Application\Commands\CancelShipment\CancelShipmentHandler;
 use StoreYar\Modules\Shipping\Application\Commands\CreateShipment\CreateShipmentCommand;
 use StoreYar\Modules\Shipping\Application\Commands\CreateShipment\CreateShipmentHandler;
 use StoreYar\Modules\Shipping\Application\Commands\DeliverShipment\DeliverShipmentCommand;
@@ -15,7 +17,10 @@ use StoreYar\Modules\Shipping\Application\Queries\GetShipmentById\GetShipmentByI
 use StoreYar\Modules\Shipping\Application\Queries\GetShipmentById\GetShipmentByIdQuery;
 use StoreYar\Modules\Shipping\Application\Queries\ListShipmentsByOrganization\ListShipmentsByOrganizationHandler;
 use StoreYar\Modules\Shipping\Application\Queries\ListShipmentsByOrganization\ListShipmentsByOrganizationQuery;
+use StoreYar\Modules\Shipping\Application\Services\CancelShipmentIdempotently;
 use StoreYar\Modules\Shipping\Application\Services\CreateShipmentIdempotently;
+use StoreYar\Modules\Shipping\Application\Services\DeliverShipmentIdempotently;
+use StoreYar\Modules\Shipping\Application\Services\ShipShipmentIdempotently;
 use StoreYar\Modules\Shipping\Domain\Contracts\ShipmentRepository;
 use StoreYar\Modules\Shipping\Domain\Contracts\ShippableOrderGateway;
 use StoreYar\Modules\Shipping\Infrastructure\Persistence\Eloquent\EloquentShipmentRepository;
@@ -27,9 +32,28 @@ final class ShippingServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(CreateShipmentIdempotently::class);
+        /*
+         * Application Services
+         */
+        $this->app->singleton(
+            CreateShipmentIdempotently::class
+        );
 
+        $this->app->singleton(
+            ShipShipmentIdempotently::class
+        );
 
+        $this->app->singleton(
+            DeliverShipmentIdempotently::class
+        );
+
+        $this->app->singleton(
+            CancelShipmentIdempotently::class
+        );
+
+        /*
+         * Repositories / Gateways
+         */
         $this->app->singleton(
             ShipmentRepository::class,
             EloquentShipmentRepository::class,
@@ -40,6 +64,9 @@ final class ShippingServiceProvider extends ServiceProvider
             SalesShippableOrderGateway::class,
         );
 
+        /*
+         * Command Handlers
+         */
         $commands = $this->app->make(CommandHandlerRegistry::class);
 
         $commands->register(
@@ -57,6 +84,14 @@ final class ShippingServiceProvider extends ServiceProvider
             DeliverShipmentHandler::class,
         );
 
+        $commands->register(
+            CancelShipmentCommand::class,
+            CancelShipmentHandler::class,
+        );
+
+        /*
+         * Query Handlers
+         */
         $queries = $this->app->make(QueryHandlerRegistry::class);
 
         $queries->register(

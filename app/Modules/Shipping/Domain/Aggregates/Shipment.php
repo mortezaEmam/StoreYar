@@ -6,6 +6,7 @@ namespace StoreYar\Modules\Shipping\Domain\Aggregates;
 
 use DateTimeImmutable;
 use StoreYar\Modules\Shipping\Domain\Enums\ShipmentStatus;
+use StoreYar\Modules\Shipping\Domain\Events\ShipmentCancelled;
 use StoreYar\Modules\Shipping\Domain\Events\ShipmentCreated;
 use StoreYar\Modules\Shipping\Domain\Events\ShipmentDelivered;
 use StoreYar\Modules\Shipping\Domain\Events\ShipmentShipped;
@@ -79,6 +80,29 @@ final class Shipment extends AggregateRoot
         $shipment->version = $version;
 
         return $shipment;
+    }
+
+
+
+    public function cancel(DateTimeImmutable $now, string $reason = ''): void
+    {
+        if (! $this->status->canCancel()) {
+            throw new InvalidShipmentState('cancel', $this->status);
+        }
+
+        $this->status = ShipmentStatus::CANCELLED;
+        $this->updatedAt = $now;
+        $this->version++;
+
+        $this->recordEvent(
+            new ShipmentCancelled(
+                shipmentId: $this->id(),
+                organizationId: $this->organizationId,
+                orderId: $this->orderId,
+                reason: $reason,
+                occurredAt: $now,
+            ),
+        );
     }
 
     public function markShipped(string $trackingNumber, DateTimeImmutable $now): void
