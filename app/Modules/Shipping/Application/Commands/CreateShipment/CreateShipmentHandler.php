@@ -11,6 +11,7 @@ use StoreYar\Modules\Shipping\Domain\Exceptions\OrderNotShippable;
 use StoreYar\Modules\Shipping\Domain\ValueObjects\ShipmentId;
 use StoreYar\Shared\Application\Bus\Command\Command;
 use StoreYar\Shared\Application\Bus\Command\CommandHandler;
+use StoreYar\Shared\Domain\Contracts\AuditLogger;
 use StoreYar\Shared\Domain\Contracts\Clock;
 
 final class CreateShipmentHandler implements CommandHandler
@@ -19,6 +20,8 @@ final class CreateShipmentHandler implements CommandHandler
         private ShipmentRepository $shipments,
         private ShippableOrderGateway $orders,
         private Clock $clock,
+        private AuditLogger $audit,
+
     ) {
     }
 
@@ -58,6 +61,17 @@ final class CreateShipmentHandler implements CommandHandler
         );
 
         $this->shipments->save($shipment);
+
+
+        $this->audit->log(
+            action: 'shipping.shipment.created',
+            resourceType: 'shipping.shipment',
+            resourceId: $shipment->shipmentId()->value(),
+            organizationId: $shipment->organizationId(),
+            payload: [
+                'order_id' => $shipment->orderId(),
+            ],
+        );
 
         return $shipment;
     }
