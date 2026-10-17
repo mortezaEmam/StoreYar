@@ -11,6 +11,7 @@ use StoreYar\Modules\Sales\Domain\Contracts\StockReservationService;
 use StoreYar\Modules\Sales\Domain\ValueObjects\OrderId;
 use StoreYar\Shared\Application\Bus\Command\Command;
 use StoreYar\Shared\Application\Bus\Command\CommandHandler;
+use StoreYar\Shared\Domain\Contracts\AuditLogger;
 use StoreYar\Shared\Domain\Contracts\Clock;
 
 final class CancelOrderHandler implements CommandHandler
@@ -20,6 +21,8 @@ final class CancelOrderHandler implements CommandHandler
         private StockReservationService $stock,
         private Clock $clock,
         private DatabaseManager $db,
+        private AuditLogger $audit,
+
     ) {}
 
     public function handle(Command $command): Order
@@ -59,6 +62,17 @@ final class CancelOrderHandler implements CommandHandler
             }
 
             $this->orders->save($order);
+
+            $this->audit->log(
+                action: 'sales.order.cancelled',
+                resourceType: 'sales.order',
+                resourceId: $order->orderId()->value(),
+                organizationId: $order->organizationId(),
+                payload: [
+                    'was_confirmed' => $wasConfirmed,
+                    'was_draft' => $wasDraft,
+                ],
+            );
 
             return $order;
         });

@@ -12,6 +12,7 @@ use StoreYar\Modules\Sales\Application\Commands\RevertOrderPayment\RevertOrderPa
 use StoreYar\Shared\Application\Bus\Command\Command;
 use StoreYar\Shared\Application\Bus\Command\CommandBus;
 use StoreYar\Shared\Application\Bus\Command\CommandHandler;
+use StoreYar\Shared\Domain\Contracts\AuditLogger;
 use StoreYar\Shared\Domain\Contracts\Clock;
 
 final class RefundPaymentHandler implements CommandHandler
@@ -21,6 +22,9 @@ final class RefundPaymentHandler implements CommandHandler
         private CommandBus $commands,
         private Clock $clock,
         private DatabaseManager $db,
+        private AuditLogger $audit,
+
+
     ) {
     }
 
@@ -48,6 +52,17 @@ final class RefundPaymentHandler implements CommandHandler
                     orderId: $payment->orderId(),
                     paymentId: $payment->paymentId()->value(),
                 ),
+            );
+
+            $this->audit->log(
+                action: 'payments.payment.refunded',
+                resourceType: 'payments.payment',
+                resourceId: $payment->paymentId()->value(),
+                organizationId: $payment->organizationId(),
+                payload: [
+                    'order_id' => $payment->orderId(),
+                    'reason' => $command->reason,
+                ],
             );
 
             return $payment;

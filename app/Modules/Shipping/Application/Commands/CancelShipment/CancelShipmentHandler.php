@@ -9,6 +9,7 @@ use StoreYar\Modules\Shipping\Domain\Contracts\ShipmentRepository;
 use StoreYar\Modules\Shipping\Domain\ValueObjects\ShipmentId;
 use StoreYar\Shared\Application\Bus\Command\Command;
 use StoreYar\Shared\Application\Bus\Command\CommandHandler;
+use StoreYar\Shared\Domain\Contracts\AuditLogger;
 use StoreYar\Shared\Domain\Contracts\Clock;
 
 final class CancelShipmentHandler implements CommandHandler
@@ -16,6 +17,8 @@ final class CancelShipmentHandler implements CommandHandler
     public function __construct(
         private ShipmentRepository $shipments,
         private Clock $clock,
+        private AuditLogger $audit,
+
     ) {
     }
 
@@ -35,6 +38,17 @@ final class CancelShipmentHandler implements CommandHandler
 
         $shipment->cancel($this->clock->now(), $command->reason);
         $this->shipments->save($shipment);
+
+        $this->audit->log(
+            action: 'shipping.shipment.cancelled',
+            resourceType: 'shipping.shipment',
+            resourceId: $shipment->shipmentId()->value(),
+            organizationId: $shipment->organizationId(),
+            payload: [
+                'order_id' => $shipment->orderId(),
+                'reason' => $command->reason,
+            ],
+        );
 
         return $shipment;
     }
