@@ -24,8 +24,12 @@ use StoreYar\Shared\Application\Context\BusinessContext;
 use StoreYar\Shared\Application\Context\CurrentBusinessContext;
 use StoreYar\Shared\Application\Outbox\OutboxEventPublisher;
 use StoreYar\Shared\Application\Outbox\OutboxProcessor;
+use StoreYar\Shared\Application\Queries\ListAuditLog\ListAuditLogHandler;
+use StoreYar\Shared\Application\Queries\ListAuditLog\ListAuditLogQuery;
+use StoreYar\Shared\Domain\Contracts\AuditLogger;
 use StoreYar\Shared\Domain\Contracts\Clock;
 use StoreYar\Shared\Domain\Contracts\Outbox;
+use StoreYar\Shared\Infrastructure\Audit\DatabaseAuditLogger;
 use StoreYar\Shared\Infrastructure\Clock\SystemClock;
 use StoreYar\Shared\Infrastructure\Outbox\EloquentOutbox;
 use StoreYar\Shared\Infrastructure\Outbox\LogOutboxEventPublisher;
@@ -96,6 +100,20 @@ final class SharedServiceProvider extends ServiceProvider
         $this->app->singleton(Outbox::class, EloquentOutbox::class);
         $this->app->singleton(OutboxEventPublisher::class, LogOutboxEventPublisher::class);
         $this->app->singleton(OutboxProcessor::class);
+
+
+        $this->app->singleton(AuditLogger::class, DatabaseAuditLogger::class);
+
+
+        $this->app->afterResolving(
+            InMemoryQueryHandlerRegistry::class,
+            function (InMemoryQueryHandlerRegistry $registry): void {
+                $registry->register(
+                    ListAuditLogQuery::class,
+                    ListAuditLogHandler::class,
+                );
+            },
+        );
     }
 
     /**

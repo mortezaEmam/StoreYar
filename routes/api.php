@@ -48,3 +48,7 @@ Route::middleware(['auth.session', 'business.context', 'org.member'])
 Route::middleware(['auth.session', 'business.context', 'org.member'])
     ->prefix('shipments')
     ->group(base_path('app/Modules/Shipping/Presentation/routes.php'));
+
+
+Route::middleware(['auth.session', 'business.context', 'org.member:owner,admin'])
+    ->get('/audit-log', [\StoreYar\Shared\Presentation\Http\Controllers\AuditLogController::class, 'index']);
