@@ -2,17 +2,14 @@ name: CI
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
   pull_request:
-    branches:
-      - master
+    branches: [master]
 
 jobs:
   test:
     name: Test Suite
     runs-on: ubuntu-latest
-
     services:
       mysql:
         image: mysql:8.4
@@ -21,37 +18,23 @@ jobs:
           MYSQL_USER: storeyar
           MYSQL_PASSWORD: storeyar
           MYSQL_ROOT_PASSWORD: root
-        ports:
-          - 3306:3306
+        ports: ['3306:3306']
         options: >-
           --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
           extensions: bcmath, mbstring, pdo, pdo_mysql
           coverage: none
-
-      - name: Validate Composer
-        run: composer validate --strict
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress
-
-      - name: Prepare environment
-        run: cp .env.testing .env
-
-      - name: Generate application key
-        run: php artisan key:generate --force
-
+      - run: composer validate --strict
+      - run: composer install --prefer-dist --no-interaction --no-progress
+      - run: cp .env.testing .env
+      - run: php artisan key:generate --force
       - name: Configure test database
         run: |
           echo "DB_CONNECTION=mysql" >> .env
@@ -60,18 +43,24 @@ jobs:
           echo "DB_DATABASE=storeyar_testing" >> .env
           echo "DB_USERNAME=storeyar" >> .env
           echo "DB_PASSWORD=storeyar" >> .env
+      - run: php artisan migrate --force
+      - run: find app tests -type f -name "*.php" -print0 | xargs -0 -n1 php -l
+      - run: php artisan test tests/Architecture
+      - run: php artisan test tests/Security
+      - name: Contract tests
+        run: php artisan test tests/Contract
+      - run: php artisan test
 
-      - name: Run migrations
-        run: php artisan migrate --force
-
-      - name: PHP syntax check
-        run: find app tests -type f -name "*.php" -print0 | xargs -0 -n1 php -l
-
-      - name: Architecture tests
-        run: php artisan test tests/Architecture
-
-      - name: Security tests
-        run: php artisan test tests/Security
-
-      - name: Full test suite
-        run: php artisan test
+  frontend:
+    name: Frontend package check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))"
