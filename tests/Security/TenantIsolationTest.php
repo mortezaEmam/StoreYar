@@ -21,6 +21,17 @@ final class TenantIsolationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Login/register routes use throttle:5,1 — this suite creates many users.
+        $this->withoutMiddleware([
+            \Illuminate\Routing\Middleware\ThrottleRequests::class,
+            \Illuminate\Routing\Middleware\ThrottleRequestsWithRedis::class,
+        ]);
+    }
+
     /**
      * @return array{
      *     token: string,
@@ -510,7 +521,9 @@ final class TenantIsolationTest extends TestCase
 
         $this->withToken($orgB['token'])
             ->withHeader('X-Business-Id', $orgB['organization_id'])
-            ->postJson('/api/shipments/'.$orgA['shipment_id'].'/ship')
+            ->postJson('/api/shipments/'.$orgA['shipment_id'].'/ship', [
+                'tracking_number' => 'TRACK-CROSS-TENANT',
+            ])
             ->assertNotFound();
 
         $list = $this->withToken($orgB['token'])

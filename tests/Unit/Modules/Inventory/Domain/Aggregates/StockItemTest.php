@@ -57,10 +57,13 @@ final class StockItemTest extends TestCase
             now: $this->now(),
         );
 
+        $item->pullDomainEvents(); // discard StockInitialized
+
         $later = $this->now()->modify('+1 hour');
         $item->increase(5, $later);
 
         $events = $item->pullDomainEvents();
+        self::assertCount(1, $events);
         self::assertInstanceOf(
             \StoreYar\Modules\Inventory\Domain\Events\StockAdjusted::class,
             $events[0],

@@ -1,0 +1,867 @@
+From 7066df2dae7c2f1b0d0bd3a09f51687a2177024c Mon Sep 17 00:00:00 2001
+From: Agent <a@b.c>
+Date: Sun, 18 Oct 2026 19:31:51 +0000
+Subject: [PATCH] feat(TASK-009,TASK-010): stock movement ledger dual-write;
+ order markPaid guards
+
+---
+ .../Inventory/Domain/Aggregates/StockItem.php |  39 ++++++
+ .../Domain/Events/StockCommitted.php          |  76 ++++++++++++
+ .../Inventory/Domain/Events/StockReleased.php |  76 ++++++++++++
+ .../Inventory/Domain/Events/StockReserved.php |  76 ++++++++++++
+ .../Eloquent/EloquentStockItemRepository.php  |   2 +
+ .../Eloquent/StockMovementModel.php           |  45 +++++++
+ .../Eloquent/StockMovementWriter.php          | 117 ++++++++++++++++++
+ app/Modules/Sales/Domain/Aggregates/Order.php |  25 +++-
+ .../Eloquent/EloquentOrderRepository.php      |   3 +
+ .../Persistence/Eloquent/OrderModel.php       |   1 +
+ ...create_inventory_stock_movements_table.php |  36 ++++++
+ ...0_add_payment_id_to_sales_orders_table.php |  24 ++++
+ docs/adr/ADR-012-single-payment-per-order.md  |   6 +
+ .../Inventory/StockMovementLedgerTest.php     |  54 ++++++++
+ .../Sales/Domain/Aggregates/OrderTest.php     |  53 ++++++++
+ 15 files changed, 630 insertions(+), 3 deletions(-)
+ create mode 100644 app/Modules/Inventory/Domain/Events/StockCommitted.php
+ create mode 100644 app/Modules/Inventory/Domain/Events/StockReleased.php
+ create mode 100644 app/Modules/Inventory/Domain/Events/StockReserved.php
+ create mode 100644 app/Modules/Inventory/Infrastructure/Persistence/Eloquent/StockMovementModel.php
+ create mode 100644 app/Modules/Inventory/Infrastructure/Persistence/Eloquent/StockMovementWriter.php
+ create mode 100644 database/migrations/2026_10_18_210000_create_inventory_stock_movements_table.php
+ create mode 100644 database/migrations/2026_10_18_210100_add_payment_id_to_sales_orders_table.php
+ create mode 100644 docs/adr/ADR-012-single-payment-per-order.md
+ create mode 100644 tests/Feature/Modules/Inventory/StockMovementLedgerTest.php
+
+diff --git a/app/Modules/Inventory/Domain/Aggregates/StockItem.php b/app/Modules/Inventory/Domain/Aggregates/StockItem.php
+index 19a49c2..76f490a 100644
+--- a/app/Modules/Inventory/Domain/Aggregates/StockItem.php
++++ b/app/Modules/Inventory/Domain/Aggregates/StockItem.php
+@@ -6,7 +6,10 @@
+ 
+ use DateTimeImmutable;
+ use StoreYar\Modules\Inventory\Domain\Events\StockAdjusted;
++use StoreYar\Modules\Inventory\Domain\Events\StockCommitted;
+ use StoreYar\Modules\Inventory\Domain\Events\StockInitialized;
++use StoreYar\Modules\Inventory\Domain\Events\StockReleased;
++use StoreYar\Modules\Inventory\Domain\Events\StockReserved;
+ use StoreYar\Modules\Inventory\Domain\Exceptions\InsufficientAvailableStock;
+ use StoreYar\Modules\Inventory\Domain\Exceptions\InsufficientReservedStock;
+ use StoreYar\Modules\Inventory\Domain\Exceptions\InsufficientStock;
+@@ -159,6 +162,18 @@ public function reserve(int $amount, DateTimeImmutable $now): void
+         $this->reservedQuantity += $amount;
+         $this->updatedAt = $now;
+         $this->version++;
++
++        $this->recordEvent(
++            new StockReserved(
++                stockItemId: $this->id(),
++                organizationId: $this->organizationId,
++                productId: $this->productId,
++                amount: $amount,
++                quantityAfter: $this->quantity,
++                reservedQuantityAfter: $this->reservedQuantity,
++                occurredAt: $now,
++            ),
++        );
+     }
+ 
+     public function release(int $amount, DateTimeImmutable $now): void
+@@ -175,6 +190,18 @@ public function release(int $amount, DateTimeImmutable $now): void
+         $this->quantity += $amount;
+         $this->updatedAt = $now;
+         $this->version++;
++
++        $this->recordEvent(
++            new StockReleased(
++                stockItemId: $this->id(),
++                organizationId: $this->organizationId,
++                productId: $this->productId,
++                amount: $amount,
++                quantityAfter: $this->quantity,
++                reservedQuantityAfter: $this->reservedQuantity,
++                occurredAt: $now,
++            ),
++        );
+     }
+ 
+     public function commitReserved(int $amount, DateTimeImmutable $now): void
+@@ -190,6 +217,18 @@ public function commitReserved(int $amount, DateTimeImmutable $now): void
+         $this->reservedQuantity -= $amount;
+         $this->updatedAt = $now;
+         $this->version++;
++
++        $this->recordEvent(
++            new StockCommitted(
++                stockItemId: $this->id(),
++                organizationId: $this->organizationId,
++                productId: $this->productId,
++                amount: $amount,
++                quantityAfter: $this->quantity,
++                reservedQuantityAfter: $this->reservedQuantity,
++                occurredAt: $now,
++            ),
++        );
+     }
+ 
+     public function stockItemId(): StockItemId
+diff --git a/app/Modules/Inventory/Domain/Events/StockCommitted.php b/app/Modules/Inventory/Domain/Events/StockCommitted.php
+new file mode 100644
+index 0000000..e55f75a
+--- /dev/null
++++ b/app/Modules/Inventory/Domain/Events/StockCommitted.php
+@@ -0,0 +1,76 @@
++<?php
++
++declare(strict_types=1);
++
++namespace StoreYar\Modules\Inventory\Domain\Events;
++
++use DateTimeImmutable;
++use StoreYar\Shared\Domain\Events\DomainEvent;
++use Symfony\Component\Uid\Ulid;
++
++final readonly class StockCommitted implements DomainEvent
++{
++    private string $eventId;
++
++    public function __construct(
++        private string $stockItemId,
++        private string $organizationId,
++        private string $productId,
++        private int $amount,
++        private int $quantityAfter,
++        private int $reservedQuantityAfter,
++        private DateTimeImmutable $occurredAt,
++    ) {
++        $this->eventId = (string) new Ulid();
++    }
++
++    public function eventId(): string
++    {
++        return $this->eventId;
++    }
++
++    public function occurredAt(): DateTimeImmutable
++    {
++        return $this->occurredAt;
++    }
++
++    public function aggregateId(): string
++    {
++        return $this->stockItemId;
++    }
++
++    public function aggregateType(): string
++    {
++        return 'inventory.stock_item';
++    }
++
++    public function stockItemId(): string
++    {
++        return $this->stockItemId;
++    }
++
++    public function organizationId(): string
++    {
++        return $this->organizationId;
++    }
++
++    public function productId(): string
++    {
++        return $this->productId;
++    }
++
++    public function amount(): int
++    {
++        return $this->amount;
++    }
++
++    public function quantityAfter(): int
++    {
++        return $this->quantityAfter;
++    }
++
++    public function reservedQuantityAfter(): int
++    {
++        return $this->reservedQuantityAfter;
++    }
++}
+diff --git a/app/Modules/Inventory/Domain/Events/StockReleased.php b/app/Modules/Inventory/Domain/Events/StockReleased.php
+new file mode 100644
+index 0000000..bdea8c6
+--- /dev/null
++++ b/app/Modules/Inventory/Domain/Events/StockReleased.php
+@@ -0,0 +1,76 @@
++<?php
++
++declare(strict_types=1);
++
++namespace StoreYar\Modules\Inventory\Domain\Events;
++
++use DateTimeImmutable;
++use StoreYar\Shared\Domain\Events\DomainEvent;
++use Symfony\Component\Uid\Ulid;
++
++final readonly class StockReleased implements DomainEvent
++{
++    private string $eventId;
++
++    public function __construct(
++        private string $stockItemId,
++        private string $organizationId,
++        private string $productId,
++        private int $amount,
++        private int $quantityAfter,
++        private int $reservedQuantityAfter,
++        private DateTimeImmutable $occurredAt,
++    ) {
++        $this->eventId = (string) new Ulid();
++    }
++
++    public function eventId(): string
++    {
++        return $this->eventId;
++    }
++
++    public function occurredAt(): DateTimeImmutable
++    {
++        return $this->occurredAt;
++    }
++
++    public function aggregateId(): string
++    {
++        return $this->stockItemId;
++    }
++
++    public function aggregateType(): string
++    {
++        return 'inventory.stock_item';
++    }
++
++    public function stockItemId(): string
++    {
++        return $this->stockItemId;
++    }
++
++    public function organizationId(): string
++    {
++        return $this->organizationId;
++    }
++
++    public function productId(): string
++    {
++        return $this->productId;
++    }
++
++    public function amount(): int
++    {
++        return $this->amount;
++    }
++
++    public function quantityAfter(): int
++    {
++        return $this->quantityAfter;
++    }
++
++    public function reservedQuantityAfter(): int
++    {
++        return $this->reservedQuantityAfter;
++    }
++}
+diff --git a/app/Modules/Inventory/Domain/Events/StockReserved.php b/app/Modules/Inventory/Domain/Events/StockReserved.php
+new file mode 100644
+index 0000000..4787aab
+--- /dev/null
++++ b/app/Modules/Inventory/Domain/Events/StockReserved.php
+@@ -0,0 +1,76 @@
++<?php
++
++declare(strict_types=1);
++
++namespace StoreYar\Modules\Inventory\Domain\Events;
++
++use DateTimeImmutable;
++use StoreYar\Shared\Domain\Events\DomainEvent;
++use Symfony\Component\Uid\Ulid;
++
++final readonly class StockReserved implements DomainEvent
++{
++    private string $eventId;
++
++    public function __construct(
++        private string $stockItemId,
++        private string $organizationId,
++        private string $productId,
++        private int $amount,
++        private int $quantityAfter,
++        private int $reservedQuantityAfter,
++        private DateTimeImmutable $occurredAt,
++    ) {
++        $this->eventId = (string) new Ulid();
++    }
++
++    public function eventId(): string
++    {
++        return $this->eventId;
++    }
++
++    public function occurredAt(): DateTimeImmutable
++    {
++        return $this->occurredAt;
++    }
++
++    public function aggregateId(): string
++    {
++        return $this->stockItemId;
++    }
++
++    public function aggregateType(): string
++    {
++        return 'inventory.stock_item';
++    }
++
++    public function stockItemId(): string
++    {
++        return $this->stockItemId;
++    }
++
++    public function organizationId(): string
++    {
++        return $this->organizationId;
++    }
++
++    public function productId(): string
++    {
++        return $this->productId;
++    }
++
++    public function amount(): int
++    {
++        return $this->amount;
++    }
++
++    public function quantityAfter(): int
++    {
++        return $this->quantityAfter;
++    }
++
++    public function reservedQuantityAfter(): int
++    {
++        return $this->reservedQuantityAfter;
++    }
++}
+diff --git a/app/Modules/Inventory/Infrastructure/Persistence/Eloquent/EloquentStockItemRepository.php b/app/Modules/Inventory/Infrastructure/Persistence/Eloquent/EloquentStockItemRepository.php
+index d7cd86e..0644f44 100644
+--- a/app/Modules/Inventory/Infrastructure/Persistence/Eloquent/EloquentStockItemRepository.php
++++ b/app/Modules/Inventory/Infrastructure/Persistence/Eloquent/EloquentStockItemRepository.php
+@@ -19,6 +19,7 @@ final class EloquentStockItemRepository implements StockItemRepository
+     public function __construct(
+         private readonly DatabaseVersionedUpdater $versionedUpdater,
+         private readonly Outbox $outbox,
++        private readonly StockMovementWriter $movements,
+     ) {
+     }
+ 
+@@ -108,6 +109,7 @@ public function save(StockItem $stockItem): void
+ 
+         if ($events !== []) {
+             $this->outbox->recordMany($events);
++            $this->movements->recordFromDomainEvents($events);
+         }
+     }
+ 
+diff --git a/app/Modules/Inventory/Infrastructure/Persistence/Eloquent/StockMovementModel.php b/app/Modules/Inventory/Infrastructure/Persistence/Eloquent/StockMovementModel.php
+new file mode 100644
+index 0000000..87356bd
+--- /dev/null
++++ b/app/Modules/Inventory/Infrastructure/Persistence/Eloquent/StockMovementModel.php
+@@ -0,0 +1,45 @@
++<?php
++
++declare(strict_types=1);
++
++namespace StoreYar\Modules\Inventory\Infrastructure\Persistence\Eloquent;
++
++use Illuminate\Database\Eloquent\Model;
++
++final class StockMovementModel extends Model
++{
++    protected $table = 'inventory_stock_movements';
++
++    public $incrementing = false;
++
++    public $timestamps = false;
++
++    protected $keyType = 'string';
++
++    protected $fillable = [
++        'id',
++        'organization_id',
++        'stock_item_id',
++        'product_id',
++        'movement_type',
++        'quantity_delta',
++        'reserved_delta',
++        'quantity_after',
++        'reserved_after',
++        'event_id',
++        'occurred_at',
++        'created_at',
++    ];
++
++    protected function casts(): array
++    {
++        return [
++            'quantity_delta' => 'integer',
++            'reserved_delta' => 'integer',
++            'quantity_after' => 'integer',
++            'reserved_after' => 'integer',
++            'occurred_at' => 'datetime',
++            'created_at' => 'datetime',
++        ];
++    }
++}
+diff --git a/app/Modules/Inventory/Infrastructure/Persistence/Eloquent/StockMovementWriter.php b/app/Modules/Inventory/Infrastructure/Persistence/Eloquent/StockMovementWriter.php
+new file mode 100644
+index 0000000..3e75e80
+--- /dev/null
++++ b/app/Modules/Inventory/Infrastructure/Persistence/Eloquent/StockMovementWriter.php
+@@ -0,0 +1,117 @@
++<?php
++
++declare(strict_types=1);
++
++namespace StoreYar\Modules\Inventory\Infrastructure\Persistence\Eloquent;
++
++use StoreYar\Modules\Inventory\Domain\Events\StockAdjusted;
++use StoreYar\Modules\Inventory\Domain\Events\StockCommitted;
++use StoreYar\Modules\Inventory\Domain\Events\StockInitialized;
++use StoreYar\Modules\Inventory\Domain\Events\StockReleased;
++use StoreYar\Modules\Inventory\Domain\Events\StockReserved;
++use StoreYar\Shared\Domain\Events\DomainEvent;
++use Symfony\Component\Uid\Ulid;
++
++/**
++ * Dual-writes domain stock events to inventory_stock_movements (TASK-009).
++ */
++final class StockMovementWriter
++{
++    /**
++     * @param list<DomainEvent> $events
++     */
++    public function recordFromDomainEvents(array $events): void
++    {
++        foreach ($events as $event) {
++            $row = $this->map($event);
++            if ($row === null) {
++                continue;
++            }
++            StockMovementModel::query()->create($row);
++        }
++    }
++
++    /**
++     * @return array<string, mixed>|null
++     */
++    private function map(DomainEvent $event): ?array
++    {
++        $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
++
++        return match (true) {
++            $event instanceof StockInitialized => [
++                'id' => (string) new Ulid(),
++                'organization_id' => $event->organizationId(),
++                'stock_item_id' => $event->stockItemId(),
++                'product_id' => $event->productId(),
++                'movement_type' => 'initialized',
++                'quantity_delta' => $event->quantity(),
++                'reserved_delta' => 0,
++                'quantity_after' => $event->quantity(),
++                'reserved_after' => 0,
++                'event_id' => $event->eventId(),
++                'occurred_at' => $event->occurredAt(),
++                'created_at' => $now,
++            ],
++            $event instanceof StockAdjusted => [
++                'id' => (string) new Ulid(),
++                'organization_id' => $event->organizationId(),
++                'stock_item_id' => $event->stockItemId(),
++                'product_id' => $event->productId(),
++                'movement_type' => $event->direction() === 'increase' ? 'increase' : 'decrease',
++                'quantity_delta' => $event->direction() === 'increase'
++                    ? $event->amount()
++                    : -$event->amount(),
++                'reserved_delta' => 0,
++                'quantity_after' => $event->quantityAfter(),
++                'reserved_after' => 0, // adjusted events don't track reserved in payload
++                'event_id' => $event->eventId(),
++                'occurred_at' => $event->occurredAt(),
++                'created_at' => $now,
++            ],
++            $event instanceof StockReserved => [
++                'id' => (string) new Ulid(),
++                'organization_id' => $event->organizationId(),
++                'stock_item_id' => $event->stockItemId(),
++                'product_id' => $event->productId(),
++                'movement_type' => 'reserved',
++                'quantity_delta' => -$event->amount(),
++                'reserved_delta' => $event->amount(),
++                'quantity_after' => $event->quantityAfter(),
++                'reserved_after' => $event->reservedQuantityAfter(),
++                'event_id' => $event->eventId(),
++                'occurred_at' => $event->occurredAt(),
++                'created_at' => $now,
++            ],
++            $event instanceof StockReleased => [
++                'id' => (string) new Ulid(),
++                'organization_id' => $event->organizationId(),
++                'stock_item_id' => $event->stockItemId(),
++                'product_id' => $event->productId(),
++                'movement_type' => 'released',
++                'quantity_delta' => $event->amount(),
++                'reserved_delta' => -$event->amount(),
++                'quantity_after' => $event->quantityAfter(),
++                'reserved_after' => $event->reservedQuantityAfter(),
++                'event_id' => $event->eventId(),
++                'occurred_at' => $event->occurredAt(),
++                'created_at' => $now,
++            ],
++            $event instanceof StockCommitted => [
++                'id' => (string) new Ulid(),
++                'organization_id' => $event->organizationId(),
++                'stock_item_id' => $event->stockItemId(),
++                'product_id' => $event->productId(),
++                'movement_type' => 'committed',
++                'quantity_delta' => 0,
++                'reserved_delta' => -$event->amount(),
++                'quantity_after' => $event->quantityAfter(),
++                'reserved_after' => $event->reservedQuantityAfter(),
++                'event_id' => $event->eventId(),
++                'occurred_at' => $event->occurredAt(),
++                'created_at' => $now,
++            ],
++            default => null,
++        };
++    }
++}
+diff --git a/app/Modules/Sales/Domain/Aggregates/Order.php b/app/Modules/Sales/Domain/Aggregates/Order.php
+index 8b69289..6ce690b 100644
+--- a/app/Modules/Sales/Domain/Aggregates/Order.php
++++ b/app/Modules/Sales/Domain/Aggregates/Order.php
+@@ -29,6 +29,8 @@ final class Order extends AggregateRoot
+ 
+     private int $version = 0;
+ 
++    private ?string $paymentId = null;
++
+     private function __construct(
+         private readonly OrderId $orderId,
+         private readonly string $organizationId,
+@@ -88,6 +90,7 @@ public static function reconstitute(
+         DateTimeImmutable $createdAt,
+         DateTimeImmutable $updatedAt,
+         int $version,
++        ?string $paymentId = null,
+     ): self {
+         $order = new self(
+             orderId: $id,
+@@ -100,6 +103,7 @@ public static function reconstitute(
+ 
+         $order->lines = array_values($lines);
+         $order->version = $version;
++        $order->paymentId = $paymentId;
+ 
+         return $order;
+     }
+@@ -256,18 +260,32 @@ public function version(): int
+         return $this->version;
+     }
+ 
++    public function paymentId(): ?string
++    {
++        return $this->paymentId;
++    }
+ 
+     public function markPaid(string $paymentId, DateTimeImmutable $now): void
+     {
+-        if (! $this->status->canMarkPaid()) {
++        if (trim($paymentId) === '') {
++            throw new \InvalidArgumentException('Payment ID is required.');
++        }
++
++        // Idempotent: same payment already recorded on a paid order.
++        if ($this->status === OrderStatus::PAID) {
++            if ($this->paymentId === $paymentId) {
++                return;
++            }
++
+             throw new InvalidOrderState('mark paid', $this->status);
+         }
+ 
+-        if (trim($paymentId) === '') {
+-            throw new \InvalidArgumentException('Payment ID is required.');
++        if (! $this->status->canMarkPaid()) {
++            throw new InvalidOrderState('mark paid', $this->status);
+         }
+ 
+         $this->status = OrderStatus::PAID;
++        $this->paymentId = $paymentId;
+         $this->updatedAt = $now;
+         $this->version++;
+ 
+@@ -289,6 +307,7 @@ public function revertPayment(string $paymentId, DateTimeImmutable $now): void
+         }
+ 
+         $this->status = OrderStatus::CONFIRMED;
++        $this->paymentId = null;
+         $this->updatedAt = $now;
+         $this->version++;
+ 
+diff --git a/app/Modules/Sales/Infrastructure/Persistence/Eloquent/EloquentOrderRepository.php b/app/Modules/Sales/Infrastructure/Persistence/Eloquent/EloquentOrderRepository.php
+index 083d909..6d817af 100644
+--- a/app/Modules/Sales/Infrastructure/Persistence/Eloquent/EloquentOrderRepository.php
++++ b/app/Modules/Sales/Infrastructure/Persistence/Eloquent/EloquentOrderRepository.php
+@@ -60,6 +60,7 @@ public function save(Order $order): void
+                     'organization_id' => $order->organizationId(),
+                     'customer_user_id' => $order->customerUserId(),
+                     'status' => $order->status()->value,
++                    'payment_id' => $order->paymentId(),
+                     'version' => $order->version(),
+                     'created_at' => $order->createdAt(),
+                     'updated_at' => $order->updatedAt(),
+@@ -81,6 +82,7 @@ public function save(Order $order): void
+                         'organization_id' => $order->organizationId(),
+                         'customer_user_id' => $order->customerUserId(),
+                         'status' => $order->status()->value,
++                        'payment_id' => $order->paymentId(),
+                     ],
+                 );
+ 
+@@ -154,6 +156,7 @@ private function toDomain(OrderModel $model): Order
+                 ? $model->updated_at
+                 : \DateTimeImmutable::createFromInterface($model->updated_at),
+             version: (int) $model->version,
++            paymentId: $model->payment_id,
+         );
+     }
+ 
+diff --git a/app/Modules/Sales/Infrastructure/Persistence/Eloquent/OrderModel.php b/app/Modules/Sales/Infrastructure/Persistence/Eloquent/OrderModel.php
+index f7810a6..883b468 100644
+--- a/app/Modules/Sales/Infrastructure/Persistence/Eloquent/OrderModel.php
++++ b/app/Modules/Sales/Infrastructure/Persistence/Eloquent/OrderModel.php
+@@ -20,6 +20,7 @@ final class OrderModel extends Model
+         'organization_id',
+         'customer_user_id',
+         'status',
++        'payment_id',
+         'version',
+     ];
+ 
+diff --git a/database/migrations/2026_10_18_210000_create_inventory_stock_movements_table.php b/database/migrations/2026_10_18_210000_create_inventory_stock_movements_table.php
+new file mode 100644
+index 0000000..c8867d3
+--- /dev/null
++++ b/database/migrations/2026_10_18_210000_create_inventory_stock_movements_table.php
+@@ -0,0 +1,36 @@
++<?php
++
++declare(strict_types=1);
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        Schema::create('inventory_stock_movements', function (Blueprint $table): void {
++            $table->string('id', 26)->primary();
++            $table->string('organization_id', 26);
++            $table->string('stock_item_id', 26);
++            $table->string('product_id', 26);
++            $table->string('movement_type', 32);
++            $table->integer('quantity_delta');
++            $table->integer('reserved_delta');
++            $table->integer('quantity_after');
++            $table->integer('reserved_after');
++            $table->string('event_id', 26)->nullable()->unique();
++            $table->timestamp('occurred_at');
++            $table->timestamp('created_at');
++
++            $table->index(['organization_id', 'product_id']);
++            $table->index(['stock_item_id', 'occurred_at']);
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::dropIfExists('inventory_stock_movements');
++    }
++};
+diff --git a/database/migrations/2026_10_18_210100_add_payment_id_to_sales_orders_table.php b/database/migrations/2026_10_18_210100_add_payment_id_to_sales_orders_table.php
+new file mode 100644
+index 0000000..e5832b7
+--- /dev/null
++++ b/database/migrations/2026_10_18_210100_add_payment_id_to_sales_orders_table.php
+@@ -0,0 +1,24 @@
++<?php
++
++declare(strict_types=1);
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        Schema::table('sales_orders', function (Blueprint $table): void {
++            $table->string('payment_id', 26)->nullable()->after('status');
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::table('sales_orders', function (Blueprint $table): void {
++            $table->dropColumn('payment_id');
++        });
++    }
++};
+diff --git a/docs/adr/ADR-012-single-payment-per-order.md b/docs/adr/ADR-012-single-payment-per-order.md
+new file mode 100644
+index 0000000..293792a
+--- /dev/null
++++ b/docs/adr/ADR-012-single-payment-per-order.md
+@@ -0,0 +1,6 @@
++# ADR-012 Single successful payment per order
++
++- **Status:** Accepted (TASK-010)
++- **Context:** Multiple Payment aggregates can exist for one order; MarkOrderPaid must be safe.
++- **Decision:** An order may be marked paid once. A second MarkOrderPaid with the **same** payment id is idempotent. A different payment id on an already-paid order is rejected (`InvalidOrderState`). Product policy: one capturing payment per order for now.
++- **Consequences:** `sales_orders.payment_id` stores the winning payment; CompletePayment may be called twice safely for the same payment.
+diff --git a/tests/Feature/Modules/Inventory/StockMovementLedgerTest.php b/tests/Feature/Modules/Inventory/StockMovementLedgerTest.php
+new file mode 100644
+index 0000000..7962d1b
+--- /dev/null
++++ b/tests/Feature/Modules/Inventory/StockMovementLedgerTest.php
+@@ -0,0 +1,54 @@
++<?php
++
++declare(strict_types=1);
++
++namespace Tests\Feature\Modules\Inventory;
++
++use Illuminate\Foundation\Testing\RefreshDatabase;
++use StoreYar\Modules\Inventory\Domain\Aggregates\StockItem;
++use StoreYar\Modules\Inventory\Domain\Contracts\StockItemRepository;
++use StoreYar\Modules\Inventory\Domain\ValueObjects\StockItemId;
++use StoreYar\Shared\Domain\Contracts\Clock;
++use Tests\TestCase;
++
++final class StockMovementLedgerTest extends TestCase
++{
++    use RefreshDatabase;
++
++    public function test_save_writes_stock_movements_for_init_and_reserve(): void
++    {
++        $repo = $this->app->make(StockItemRepository::class);
++        $clock = $this->app->make(Clock::class);
++        $now = $clock->now();
++
++        $item = StockItem::create(
++            id: StockItemId::generate(),
++            organizationId: '01JORG00000000000000000001',
++            productId: '01JPROD0000000000000000001',
++            quantity: 10,
++            now: $now,
++        );
++        $repo->save($item);
++
++        $this->assertDatabaseHas('inventory_stock_movements', [
++            'product_id' => '01JPROD0000000000000000001',
++            'movement_type' => 'initialized',
++            'quantity_after' => 10,
++        ]);
++
++        $reloaded = $repo->findByOrganizationAndProduct(
++            '01JORG00000000000000000001',
++            '01JPROD0000000000000000001',
++        );
++        self::assertNotNull($reloaded);
++        $reloaded->reserve(3, $clock->now());
++        $repo->save($reloaded);
++
++        $this->assertDatabaseHas('inventory_stock_movements', [
++            'product_id' => '01JPROD0000000000000000001',
++            'movement_type' => 'reserved',
++            'quantity_after' => 7,
++            'reserved_after' => 3,
++        ]);
++    }
++}
+diff --git a/tests/Unit/Modules/Sales/Domain/Aggregates/OrderTest.php b/tests/Unit/Modules/Sales/Domain/Aggregates/OrderTest.php
+index 1a3b494..283297e 100644
+--- a/tests/Unit/Modules/Sales/Domain/Aggregates/OrderTest.php
++++ b/tests/Unit/Modules/Sales/Domain/Aggregates/OrderTest.php
+@@ -135,4 +135,57 @@ public function test_it_rejects_confirm_when_cancelled(): void
+         $this->expectException(InvalidOrderState::class);
+         $order->confirm($this->now());
+     }
++
++    public function test_it_marks_confirmed_order_as_paid(): void
++    {
++        $order = $this->newDraftOrder();
++        $order->pullDomainEvents();
++        $order->addLine('01JPROD0000000000000000001', 1, Money::of(1000), $this->now());
++        $order->confirm($this->now());
++        $order->pullDomainEvents();
++
++        $order->markPaid('01JPAY00000000000000000001', $this->now());
++
++        self::assertTrue($order->status()->isPaid());
++        self::assertSame('01JPAY00000000000000000001', $order->paymentId());
++    }
++
++    public function test_mark_paid_is_idempotent_for_same_payment(): void
++    {
++        $order = $this->newDraftOrder();
++        $order->pullDomainEvents();
++        $order->addLine('01JPROD0000000000000000001', 1, Money::of(1000), $this->now());
++        $order->confirm($this->now());
++        $order->pullDomainEvents();
++
++        $order->markPaid('01JPAY00000000000000000001', $this->now());
++        $version = $order->version();
++        $order->pullDomainEvents();
++
++        $order->markPaid('01JPAY00000000000000000001', $this->now());
++
++        self::assertSame($version, $order->version());
++        self::assertSame([], $order->pullDomainEvents());
++    }
++
++    public function test_mark_paid_rejects_different_payment_when_already_paid(): void
++    {
++        $order = $this->newDraftOrder();
++        $order->pullDomainEvents();
++        $order->addLine('01JPROD0000000000000000001', 1, Money::of(1000), $this->now());
++        $order->confirm($this->now());
++        $order->markPaid('01JPAY00000000000000000001', $this->now());
++
++        $this->expectException(InvalidOrderState::class);
++        $order->markPaid('01JPAY00000000000000000002', $this->now());
++    }
++
++    public function test_mark_paid_rejects_draft_order(): void
++    {
++        $order = $this->newDraftOrder();
++        $order->pullDomainEvents();
++
++        $this->expectException(InvalidOrderState::class);
++        $order->markPaid('01JPAY00000000000000000001', $this->now());
++    }
+ }
+-- 
+2.43.0
+
