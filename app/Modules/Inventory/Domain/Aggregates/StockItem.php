@@ -6,7 +6,10 @@ namespace StoreYar\Modules\Inventory\Domain\Aggregates;
 
 use DateTimeImmutable;
 use StoreYar\Modules\Inventory\Domain\Events\StockAdjusted;
+use StoreYar\Modules\Inventory\Domain\Events\StockCommitted;
 use StoreYar\Modules\Inventory\Domain\Events\StockInitialized;
+use StoreYar\Modules\Inventory\Domain\Events\StockReleased;
+use StoreYar\Modules\Inventory\Domain\Events\StockReserved;
 use StoreYar\Modules\Inventory\Domain\Exceptions\InsufficientAvailableStock;
 use StoreYar\Modules\Inventory\Domain\Exceptions\InsufficientReservedStock;
 use StoreYar\Modules\Inventory\Domain\Exceptions\InsufficientStock;
@@ -159,6 +162,18 @@ final class StockItem extends AggregateRoot
         $this->reservedQuantity += $amount;
         $this->updatedAt = $now;
         $this->version++;
+
+        $this->recordEvent(
+            new StockReserved(
+                stockItemId: $this->id(),
+                organizationId: $this->organizationId,
+                productId: $this->productId,
+                amount: $amount,
+                quantityAfter: $this->quantity,
+                reservedQuantityAfter: $this->reservedQuantity,
+                occurredAt: $now,
+            ),
+        );
     }
 
     public function release(int $amount, DateTimeImmutable $now): void
@@ -175,6 +190,18 @@ final class StockItem extends AggregateRoot
         $this->quantity += $amount;
         $this->updatedAt = $now;
         $this->version++;
+
+        $this->recordEvent(
+            new StockReleased(
+                stockItemId: $this->id(),
+                organizationId: $this->organizationId,
+                productId: $this->productId,
+                amount: $amount,
+                quantityAfter: $this->quantity,
+                reservedQuantityAfter: $this->reservedQuantity,
+                occurredAt: $now,
+            ),
+        );
     }
 
     public function commitReserved(int $amount, DateTimeImmutable $now): void
@@ -190,6 +217,18 @@ final class StockItem extends AggregateRoot
         $this->reservedQuantity -= $amount;
         $this->updatedAt = $now;
         $this->version++;
+
+        $this->recordEvent(
+            new StockCommitted(
+                stockItemId: $this->id(),
+                organizationId: $this->organizationId,
+                productId: $this->productId,
+                amount: $amount,
+                quantityAfter: $this->quantity,
+                reservedQuantityAfter: $this->reservedQuantity,
+                occurredAt: $now,
+            ),
+        );
     }
 
     public function stockItemId(): StockItemId

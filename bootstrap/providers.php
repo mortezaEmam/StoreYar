@@ -21,7 +21,6 @@ return [
     AuthorizationServiceProvider::class,
     CatalogServiceProvider::class,
     InventoryServiceProvider::class,
-    InventoryServiceProvider::class,
     SalesServiceProvider::class,
     PaymentsServiceProvider::class,
     ShippingServiceProvider::class,

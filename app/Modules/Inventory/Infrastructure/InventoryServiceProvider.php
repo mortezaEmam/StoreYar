@@ -13,8 +13,10 @@ use StoreYar\Modules\Inventory\Application\Queries\GetStockByProduct\GetStockByP
 use StoreYar\Modules\Inventory\Application\Queries\GetStockByProduct\GetStockByProductQuery;
 use StoreYar\Modules\Inventory\Application\Queries\ListStockByOrganization\ListStockByOrganizationHandler;
 use StoreYar\Modules\Inventory\Application\Queries\ListStockByOrganization\ListStockByOrganizationQuery;
+use StoreYar\Modules\Inventory\Application\Contracts\OrderStockService;
 use StoreYar\Modules\Inventory\Application\Services\AdjustStockIdempotently;
 use StoreYar\Modules\Inventory\Application\Services\InitializeStockIdempotently;
+use StoreYar\Modules\Inventory\Application\Services\OrderStockService as OrderStockServiceImplementation;
 use StoreYar\Modules\Inventory\Domain\Contracts\ProductExistenceChecker;
 use StoreYar\Modules\Inventory\Domain\Contracts\StockItemRepository;
 use StoreYar\Modules\Inventory\Infrastructure\Catalog\CatalogProductExistenceChecker;
@@ -57,5 +59,10 @@ final class InventoryServiceProvider extends ServiceProvider
         $this->app->singleton(AdjustStockIdempotently::class);
 
         $this->app->singleton(InitializeStockIdempotently::class);
+
+        $this->app->singleton(
+            OrderStockService::class,
+            OrderStockServiceImplementation::class,
+        );
     }
 }

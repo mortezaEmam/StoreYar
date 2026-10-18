@@ -4,84 +4,64 @@ declare(strict_types=1);
 
 namespace StoreYar\Modules\Sales\Infrastructure\Inventory;
 
-use StoreYar\Modules\Inventory\Domain\Aggregates\StockItem;
-use StoreYar\Modules\Inventory\Domain\Contracts\StockItemRepository;
-use StoreYar\Modules\Inventory\Domain\Exceptions\InsufficientAvailableStock;
-use StoreYar\Modules\Inventory\Domain\Exceptions\InsufficientReservedStock;
+use StoreYar\Modules\Inventory\Application\Contracts\OrderStockService;
+use StoreYar\Modules\Inventory\Application\Exceptions\InsufficientAvailableStockException;
+use StoreYar\Modules\Inventory\Application\Exceptions\InsufficientReservedStockException;
+use StoreYar\Modules\Inventory\Application\Exceptions\StockItemNotFoundException;
 use StoreYar\Modules\Sales\Domain\Contracts\StockReservationService;
 use StoreYar\Modules\Sales\Domain\Exceptions\InsufficientStockForOrder;
-use StoreYar\Shared\Domain\Contracts\Clock;
 
+/**
+ * Anti-corruption adapter: Sales Domain port → Inventory Application API.
+ * Must not import Inventory Domain aggregates or repositories.
+ */
 final class InventoryStockReservationService implements StockReservationService
 {
     public function __construct(
-        private StockItemRepository $stockItems,
-        private Clock $clock,
+        private OrderStockService $orderStock,
     ) {}
 
     public function reserveForOrder(string $organizationId, array $lines): void
     {
-        foreach ($lines as $line) {
-            $item = $this->requireItem($organizationId, $line['product_id']);
-
-            try {
-                $item->reserve($line['quantity'], $this->clock->now());
-            } catch (InsufficientAvailableStock) {
-                throw new InsufficientStockForOrder(
-                    $line['product_id'],
-                    $line['quantity'],
-                    $item->quantity(),
-                );
-            }
-
-            $this->stockItems->save($item);
+        try {
+            $this->orderStock->reserveForOrder($organizationId, $lines);
+        } catch (InsufficientAvailableStockException $e) {
+            throw new InsufficientStockForOrder(
+                $e->productId,
+                $e->requested,
+                $e->available,
+            );
+        } catch (StockItemNotFoundException $e) {
+            throw new InsufficientStockForOrder($e->productId, 0, 0);
         }
     }
 
     public function releaseForOrder(string $organizationId, array $lines): void
     {
-        foreach ($lines as $line) {
-            $item = $this->requireItem($organizationId, $line['product_id']);
-            $item->release($line['quantity'], $this->clock->now());
-            $this->stockItems->save($item);
+        try {
+            $this->orderStock->releaseForOrder($organizationId, $lines);
+        } catch (StockItemNotFoundException $e) {
+            throw new InsufficientStockForOrder($e->productId, 0, 0);
         }
     }
 
     public function commitForOrder(string $organizationId, array $lines): void
     {
-        foreach ($lines as $line) {
-            $item = $this->requireItem($organizationId, $line['product_id']);
-
-            try {
-                $item->commitReserved($line['quantity'], $this->clock->now());
-            } catch (InsufficientReservedStock $e) {
-                throw $e;
-            }
-
-            $this->stockItems->save($item);
+        try {
+            $this->orderStock->commitForOrder($organizationId, $lines);
+        } catch (StockItemNotFoundException $e) {
+            throw new InsufficientStockForOrder($e->productId, 0, 0);
+        } catch (InsufficientReservedStockException $e) {
+            throw new \InvalidArgumentException($e->getMessage(), 0, $e);
         }
     }
 
     public function restockForOrder(string $organizationId, array $lines): void
     {
-        foreach ($lines as $line) {
-            $item = $this->requireItem($organizationId, $line['product_id']);
-            $item->increase($line['quantity'], $this->clock->now());
-            $this->stockItems->save($item);
+        try {
+            $this->orderStock->restockForOrder($organizationId, $lines);
+        } catch (StockItemNotFoundException $e) {
+            throw new InsufficientStockForOrder($e->productId, 0, 0);
         }
-    }
-
-    private function requireItem(string $organizationId, string $productId): StockItem
-    {
-        $item = $this->stockItems->findByOrganizationAndProduct(
-            $organizationId,
-            $productId,
-        );
-
-        if ($item === null) {
-            throw new InsufficientStockForOrder($productId, 0, 0);
-        }
-
-        return $item;
     }
 }

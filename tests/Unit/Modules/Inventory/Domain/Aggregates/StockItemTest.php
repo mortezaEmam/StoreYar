@@ -8,6 +8,9 @@ use DateTimeImmutable;
 use DateTimeZone;
 use PHPUnit\Framework\TestCase;
 use StoreYar\Modules\Inventory\Domain\Aggregates\StockItem;
+use StoreYar\Modules\Inventory\Domain\Events\StockCommitted;
+use StoreYar\Modules\Inventory\Domain\Events\StockReleased;
+use StoreYar\Modules\Inventory\Domain\Events\StockReserved;
 use StoreYar\Modules\Inventory\Domain\Exceptions\InsufficientAvailableStock;
 use StoreYar\Modules\Inventory\Domain\Exceptions\InsufficientStock;
 use StoreYar\Modules\Inventory\Domain\ValueObjects\StockItemId;
@@ -98,8 +101,7 @@ final class StockItemTest extends TestCase
         );
     }
 
-
-    public function test_it_reserves_and_commits(): void
+    public function test_it_reserves_and_commits_with_domain_events(): void
     {
         $item = StockItem::create(
             id: StockItemId::generate(),
@@ -114,12 +116,26 @@ final class StockItemTest extends TestCase
         self::assertSame(7, $item->quantity());
         self::assertSame(3, $item->reservedQuantity());
 
+        $reservedEvents = $item->pullDomainEvents();
+        self::assertCount(1, $reservedEvents);
+        self::assertInstanceOf(StockReserved::class, $reservedEvents[0]);
+        self::assertSame(3, $reservedEvents[0]->amount());
+        self::assertSame(7, $reservedEvents[0]->quantityAfter());
+        self::assertSame(3, $reservedEvents[0]->reservedQuantityAfter());
+
         $item->commitReserved(3, $this->now());
         self::assertSame(7, $item->quantity());
         self::assertSame(0, $item->reservedQuantity());
+
+        $committedEvents = $item->pullDomainEvents();
+        self::assertCount(1, $committedEvents);
+        self::assertInstanceOf(StockCommitted::class, $committedEvents[0]);
+        self::assertSame(3, $committedEvents[0]->amount());
+        self::assertSame(7, $committedEvents[0]->quantityAfter());
+        self::assertSame(0, $committedEvents[0]->reservedQuantityAfter());
     }
 
-    public function test_it_releases_reservation(): void
+    public function test_it_releases_reservation_with_domain_event(): void
     {
         $item = StockItem::create(
             id: StockItemId::generate(),
@@ -127,13 +143,22 @@ final class StockItemTest extends TestCase
             productId: '01JPROD0000000000000000001',
             quantity: 10,
             now: $this->now(),
-        );;
+        );
         $item->pullDomainEvents();
         $item->reserve(4, $this->now());
+        $item->pullDomainEvents();
+
         $item->release(4, $this->now());
 
         self::assertSame(10, $item->quantity());
         self::assertSame(0, $item->reservedQuantity());
+
+        $events = $item->pullDomainEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(StockReleased::class, $events[0]);
+        self::assertSame(4, $events[0]->amount());
+        self::assertSame(10, $events[0]->quantityAfter());
+        self::assertSame(0, $events[0]->reservedQuantityAfter());
     }
 
     public function test_it_rejects_reserve_when_insufficient(): void
@@ -144,8 +169,8 @@ final class StockItemTest extends TestCase
             productId: '01JPROD0000000000000000001',
             quantity: 10,
             now: $this->now(),
-        );;
+        );
         $this->expectException(InsufficientAvailableStock::class);
-        $item->reserve(5, $this->now());
+        $item->reserve(15, $this->now());
     }
 }

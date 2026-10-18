@@ -185,7 +185,26 @@ final class ArchitectureBaselineTest extends TestCase
         );
     }
 
-    /**
+    public function test_sales_must_not_depend_on_inventory_domain(): void
+    {
+        $path = dirname(__DIR__, 2) . '/app/Modules/Sales';
+
+        $violations = $this->findNamespaceViolations(
+            path: $path,
+            forbiddenNamespaces: [
+                'StoreYar\\Modules\\Inventory\\Domain\\',
+            ],
+        );
+
+        $this->assertSame(
+            [],
+            $violations,
+            "Sales must not import Inventory Domain (use Inventory Application API):\n"
+            . implode("\n", $violations),
+        );
+    }
+
+        /**
      * @return list<string>
      */
     private function findNamespaceViolations(
