@@ -4,67 +4,50 @@ declare(strict_types=1);
 
 namespace StoreYar\Modules\Sales\Domain\ValueObjects;
 
+use StoreYar\Shared\Support\Money\MinorMoney;
+
 /**
- * Money stored as integer minor units (e.g. 10000 = 100.00 in currency with 2 decimals).
- * Currency is fixed per deployment for now; extend later if multi-currency is required.
+ * @deprecated Prefer {@see MinorMoney}. Kept as Sales-facing alias API.
  */
 final readonly class Money
 {
     private function __construct(
-        private int $amount,
-        private string $currency,
+        private MinorMoney $inner,
     ) {
     }
 
     public static function of(int $amount, string $currency = 'IRR'): self
     {
-        if ($amount < 0) {
-            throw new \InvalidArgumentException('Money amount cannot be negative.');
-        }
-
-        if (trim($currency) === '') {
-            throw new \InvalidArgumentException('Currency is required.');
-        }
-
-        return new self($amount, strtoupper($currency));
+        return new self(MinorMoney::of($amount, $currency));
     }
 
     public function amount(): int
     {
-        return $this->amount;
+        return $this->inner->amount();
     }
 
     public function currency(): string
     {
-        return $this->currency;
+        return $this->inner->currency();
     }
 
     public function multiply(int $quantity): self
     {
-        if ($quantity < 0) {
-            throw new \InvalidArgumentException('Quantity cannot be negative.');
-        }
-
-        return new self($this->amount * $quantity, $this->currency);
+        return new self($this->inner->multiply($quantity));
     }
 
     public function add(self $other): self
     {
-        $this->assertSameCurrency($other);
-
-        return new self($this->amount + $other->amount, $this->currency);
+        return new self($this->inner->add($other->inner));
     }
 
     public function equals(self $other): bool
     {
-        return $this->amount === $other->amount
-            && $this->currency === $other->currency;
+        return $this->inner->equals($other->inner);
     }
 
-    private function assertSameCurrency(self $other): void
+    public function toMinorMoney(): MinorMoney
     {
-        if ($this->currency !== $other->currency) {
-            throw new \InvalidArgumentException('Currency mismatch.');
-        }
+        return $this->inner;
     }
 }
