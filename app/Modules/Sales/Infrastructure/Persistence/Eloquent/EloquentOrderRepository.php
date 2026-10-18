@@ -60,6 +60,7 @@ final class EloquentOrderRepository implements OrderRepository
                     'organization_id' => $order->organizationId(),
                     'customer_user_id' => $order->customerUserId(),
                     'status' => $order->status()->value,
+                    'payment_id' => $order->paymentId(),
                     'version' => $order->version(),
                     'created_at' => $order->createdAt(),
                     'updated_at' => $order->updatedAt(),
@@ -81,6 +82,7 @@ final class EloquentOrderRepository implements OrderRepository
                         'organization_id' => $order->organizationId(),
                         'customer_user_id' => $order->customerUserId(),
                         'status' => $order->status()->value,
+                        'payment_id' => $order->paymentId(),
                     ],
                 );
 
@@ -154,6 +156,7 @@ final class EloquentOrderRepository implements OrderRepository
                 ? $model->updated_at
                 : \DateTimeImmutable::createFromInterface($model->updated_at),
             version: (int) $model->version,
+            paymentId: $model->payment_id,
         );
     }
 

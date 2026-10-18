@@ -29,6 +29,8 @@ final class Order extends AggregateRoot
 
     private int $version = 0;
 
+    private ?string $paymentId = null;
+
     private function __construct(
         private readonly OrderId $orderId,
         private readonly string $organizationId,
@@ -88,6 +90,7 @@ final class Order extends AggregateRoot
         DateTimeImmutable $createdAt,
         DateTimeImmutable $updatedAt,
         int $version,
+        ?string $paymentId = null,
     ): self {
         $order = new self(
             orderId: $id,
@@ -100,6 +103,7 @@ final class Order extends AggregateRoot
 
         $order->lines = array_values($lines);
         $order->version = $version;
+        $order->paymentId = $paymentId;
 
         return $order;
     }
@@ -256,18 +260,32 @@ final class Order extends AggregateRoot
         return $this->version;
     }
 
+    public function paymentId(): ?string
+    {
+        return $this->paymentId;
+    }
 
     public function markPaid(string $paymentId, DateTimeImmutable $now): void
     {
-        if (! $this->status->canMarkPaid()) {
-            throw new InvalidOrderState('mark paid', $this->status);
-        }
-
         if (trim($paymentId) === '') {
             throw new \InvalidArgumentException('Payment ID is required.');
         }
 
+        // Idempotent: same payment already recorded on a paid order.
+        if ($this->status === OrderStatus::PAID) {
+            if ($this->paymentId === $paymentId) {
+                return;
+            }
+
+            throw new InvalidOrderState('mark paid', $this->status);
+        }
+
+        if (! $this->status->canMarkPaid()) {
+            throw new InvalidOrderState('mark paid', $this->status);
+        }
+
         $this->status = OrderStatus::PAID;
+        $this->paymentId = $paymentId;
         $this->updatedAt = $now;
         $this->version++;
 
@@ -289,6 +307,7 @@ final class Order extends AggregateRoot
         }
 
         $this->status = OrderStatus::CONFIRMED;
+        $this->paymentId = null;
         $this->updatedAt = $now;
         $this->version++;
 

@@ -135,4 +135,57 @@ final class OrderTest extends TestCase
         $this->expectException(InvalidOrderState::class);
         $order->confirm($this->now());
     }
+
+    public function test_it_marks_confirmed_order_as_paid(): void
+    {
+        $order = $this->newDraftOrder();
+        $order->pullDomainEvents();
+        $order->addLine('01JPROD0000000000000000001', 1, Money::of(1000), $this->now());
+        $order->confirm($this->now());
+        $order->pullDomainEvents();
+
+        $order->markPaid('01JPAY00000000000000000001', $this->now());
+
+        self::assertTrue($order->status()->isPaid());
+        self::assertSame('01JPAY00000000000000000001', $order->paymentId());
+    }
+
+    public function test_mark_paid_is_idempotent_for_same_payment(): void
+    {
+        $order = $this->newDraftOrder();
+        $order->pullDomainEvents();
+        $order->addLine('01JPROD0000000000000000001', 1, Money::of(1000), $this->now());
+        $order->confirm($this->now());
+        $order->pullDomainEvents();
+
+        $order->markPaid('01JPAY00000000000000000001', $this->now());
+        $version = $order->version();
+        $order->pullDomainEvents();
+
+        $order->markPaid('01JPAY00000000000000000001', $this->now());
+
+        self::assertSame($version, $order->version());
+        self::assertSame([], $order->pullDomainEvents());
+    }
+
+    public function test_mark_paid_rejects_different_payment_when_already_paid(): void
+    {
+        $order = $this->newDraftOrder();
+        $order->pullDomainEvents();
+        $order->addLine('01JPROD0000000000000000001', 1, Money::of(1000), $this->now());
+        $order->confirm($this->now());
+        $order->markPaid('01JPAY00000000000000000001', $this->now());
+
+        $this->expectException(InvalidOrderState::class);
+        $order->markPaid('01JPAY00000000000000000002', $this->now());
+    }
+
+    public function test_mark_paid_rejects_draft_order(): void
+    {
+        $order = $this->newDraftOrder();
+        $order->pullDomainEvents();
+
+        $this->expectException(InvalidOrderState::class);
+        $order->markPaid('01JPAY00000000000000000001', $this->now());
+    }
 }

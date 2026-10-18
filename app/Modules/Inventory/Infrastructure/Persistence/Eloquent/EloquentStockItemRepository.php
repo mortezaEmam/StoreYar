@@ -19,6 +19,7 @@ final class EloquentStockItemRepository implements StockItemRepository
     public function __construct(
         private readonly DatabaseVersionedUpdater $versionedUpdater,
         private readonly Outbox $outbox,
+        private readonly StockMovementWriter $movements,
     ) {
     }
 
@@ -108,6 +109,7 @@ final class EloquentStockItemRepository implements StockItemRepository
 
         if ($events !== []) {
             $this->outbox->recordMany($events);
+            $this->movements->recordFromDomainEvents($events);
         }
     }
 

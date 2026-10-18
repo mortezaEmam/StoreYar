@@ -20,6 +20,7 @@ final class OrderModel extends Model
         'organization_id',
         'customer_user_id',
         'status',
+        'payment_id',
         'version',
     ];
 
