@@ -12,28 +12,71 @@ use StoreYar\Shared\Infrastructure\Id\UlidGenerator;
 
 final class IdempotencyExecutorFailureTest extends TestCase
 {
-    public function test_failed_operation_does_not_store_completed_result(): void
+    public function test_failed_operation_marks_record_as_failed(): void
     {
         $store = new InMemoryIdempotencyStoreForTest();
-
         $executor = new IdempotencyExecutor(
             $store,
             new UlidGenerator(),
         );
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Simulated operation failure.');
+        try {
+            $executor->execute(
+                businessId: 'business-1',
+                operationId: 'operation-1',
+                operationType: 'sales.create',
+                operation: static function (): array {
+                    throw new \RuntimeException(
+                        'Simulated operation failure.',
+                    );
+                },
+            );
+            self::fail('Expected RuntimeException');
+        } catch (\RuntimeException $e) {
+            self::assertSame('Simulated operation failure.', $e->getMessage());
+        }
 
-        $executor->execute(
+        $record = $store->find('business-1', 'operation-1');
+        self::assertNotNull($record);
+        self::assertSame('failed', $record->status());
+        self::assertSame('Simulated operation failure.', $record->response()['error'] ?? null);
+    }
+
+    public function test_failed_operation_can_be_retried_with_same_key(): void
+    {
+        $store = new InMemoryIdempotencyStoreForTest();
+        $executor = new IdempotencyExecutor(
+            $store,
+            new UlidGenerator(),
+        );
+
+        try {
+            $executor->execute(
+                businessId: 'business-1',
+                operationId: 'operation-1',
+                operationType: 'sales.create',
+                operation: static function (): array {
+                    throw new \RuntimeException('first failure');
+                },
+            );
+        } catch (\RuntimeException) {
+        }
+
+        $result = $executor->execute(
             businessId: 'business-1',
             operationId: 'operation-1',
             operationType: 'sales.create',
             operation: static function (): array {
-                throw new \RuntimeException(
-                    'Simulated operation failure.',
-                );
+                return ['id' => 'order-1'];
             },
         );
+
+        self::assertFalse($result->replayed());
+        self::assertSame(['id' => 'order-1'], $result->response());
+
+        $record = $store->find('business-1', 'operation-1');
+        self::assertNotNull($record);
+        self::assertSame('completed', $record->status());
     }
 
     public function test_processing_operation_is_not_executed_again(): void
@@ -118,6 +161,6 @@ final class InMemoryIdempotencyStoreForTest implements IdempotencyStore
         string $businessId,
         string $operationId,
     ): string {
-        return $businessId . ':' . $operationId;
+        return $businessId.'|'.$operationId;
     }
 }

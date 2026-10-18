@@ -6,15 +6,15 @@ namespace Tests\Feature\Shared\Infrastructure\Messaging;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use StoreYar\Shared\Application\Contracts\Messaging\OutboxMessage;
-use StoreYar\Shared\Infrastructure\Messaging\DatabaseOutboxStore;
 use StoreYar\Shared\Infrastructure\Id\UlidGenerator;
+use StoreYar\Shared\Infrastructure\Messaging\DatabaseOutboxStore;
 use Tests\TestCase;
 
 final class DatabaseOutboxStoreTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_it_stores_outbox_message(): void
+    public function test_it_stores_outbox_message_in_shared_outbox(): void
     {
         $idGenerator = new UlidGenerator();
 
@@ -41,20 +41,25 @@ final class DatabaseOutboxStoreTest extends TestCase
 
         $store->store($message);
 
-        $this->assertDatabaseHas('integration_outbox_messages', [
+        $this->assertDatabaseHas('shared_outbox', [
             'id' => $message->id(),
-            'event_id' => $message->eventId(),
-            'business_id' => $message->businessId(),
             'event_type' => $message->eventType(),
+            'aggregate_id' => $message->aggregateId(),
+            'aggregate_type' => $message->aggregateType(),
+        ]);
+
+        $this->assertDatabaseMissing('integration_outbox_messages', [
+            'id' => $message->id(),
         ]);
     }
 
-    public function test_duplicate_event_id_is_rejected(): void
+    public function test_duplicate_id_is_rejected(): void
     {
         $idGenerator = new UlidGenerator();
+        $id = $idGenerator->generate();
 
         $message = new OutboxMessage(
-            id: $idGenerator->generate(),
+            id: $id,
             eventId: $idGenerator->generate(),
             version: 1,
             eventType: 'sales.sale.created',
@@ -78,13 +83,13 @@ final class DatabaseOutboxStoreTest extends TestCase
 
         $store->store(
             new OutboxMessage(
-                id: $idGenerator->generate(),
-                eventId: $message->eventId(),
+                id: $id,
+                eventId: $idGenerator->generate(),
                 version: 1,
                 eventType: 'sales.sale.created',
                 businessId: $message->businessId(),
                 aggregateId: $message->aggregateId(),
-                aggregateType: $message->aggregateType,
+                aggregateType: $message->aggregateType(),
                 operationId: $idGenerator->generate(),
                 correlationId: $message->correlationId(),
                 causationId: null,

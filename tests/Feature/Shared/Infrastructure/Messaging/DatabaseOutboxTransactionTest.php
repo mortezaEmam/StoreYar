@@ -66,9 +66,9 @@ final class DatabaseOutboxTransactionTest extends TestCase
         ]);
 
         $this->assertDatabaseMissing(
-            'integration_outbox_messages',
+            'shared_outbox',
             [
-                'event_id' => $message->eventId(),
+                'id' => $message->id(),
             ],
         );
     }
@@ -115,10 +115,10 @@ final class DatabaseOutboxTransactionTest extends TestCase
         ]);
 
         $this->assertDatabaseHas(
-            'integration_outbox_messages',
+            'shared_outbox',
             [
-                'event_id' => $message->eventId(),
-                'operation_id' => $message->operationId(),
+                'id' => $message->id(),
+                'event_type' => $message->eventType(),
             ],
         );
     }
