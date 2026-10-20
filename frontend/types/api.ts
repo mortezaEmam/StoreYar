@@ -53,3 +53,25 @@ export interface Order {
   total_amount?: number
   currency?: string
 }
+
+export interface StockRow {
+  id?: string
+  product_id: string
+  quantity: number
+  reserved_quantity?: number
+}
+
+export interface Payment {
+  id: string
+  order_id: string
+  amount: number
+  currency: string
+  status: string
+}
+
+export interface Shipment {
+  id: string
+  order_id: string
+  status: string
+  tracking_number?: string | null
+}

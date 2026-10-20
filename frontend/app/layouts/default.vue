@@ -4,7 +4,10 @@
       <nav class="nav">
         <NuxtLink to="/">Home</NuxtLink>
         <NuxtLink to="/products">Products</NuxtLink>
+        <NuxtLink to="/stock">Stock</NuxtLink>
         <NuxtLink to="/orders">Orders</NuxtLink>
+        <NuxtLink to="/payments">Payments</NuxtLink>
+        <NuxtLink to="/shipments">Shipments</NuxtLink>
         <NuxtLink to="/business">Business</NuxtLink>
       </nav>
       <div class="meta">
