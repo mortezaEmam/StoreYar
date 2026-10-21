@@ -5,15 +5,16 @@
   "scripts": {
     "dev": "nuxt dev",
     "build": "nuxt build",
-    "preview": "nuxt preview",
-    "generate:api": "openapi-typescript ../openapi/openapi.yaml -o ./types/openapi.d.ts"
+    "preview": "nuxt preview"
   },
   "dependencies": {
+    "@pinia/nuxt": "^0.9.0",
     "nuxt": "^3.15.0",
+    "pinia": "^2.3.0",
     "vue": "^3.5.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0",
-    "openapi-typescript": "^7.4.0"
+    "vite": "^6.0.0"
   }
 }
