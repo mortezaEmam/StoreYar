@@ -25,3 +25,10 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Phase 0 — never commit agent artifacts at repo root
+/*.patch
+/frontend-complete.tar.gz
+/TASK-*.patch
+/PHASE0*.diff
+/000*-*.patch

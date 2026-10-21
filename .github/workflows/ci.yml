@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: Test Suite
+    name: Backend Test Suite
     runs-on: ubuntu-latest
     services:
       mysql:
@@ -52,7 +52,7 @@ jobs:
       - run: php artisan test
 
   frontend:
-    name: Frontend package check
+    name: Frontend install and build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -62,5 +62,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install
-      - run: node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install
+        run: npm install --legacy-peer-deps
+      - name: Validate package.json
+        run: node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))"
+      - name: Prepare Nuxt
+        run: npx nuxi prepare
+      - name: Production build
+        run: npm run build
+        env:
+          NUXT_PUBLIC_API_BASE: http://localhost:8000/api

@@ -1,21 +1,32 @@
 # AI_PROGRESS
 
+## Phase status
+
+| Phase | Status |
+|-------|--------|
+| Phase 0 — Architecture audit | Done |
+| Phase 0b — Baseline hygiene | **Done** |
+| Phase 1 — Frontend CI build | **Done** |
+| TASK-001 … TASK-014 | Done (git history) |
+| Frontend commerce UI | Done (structure cleaned) |
+
 ## Completed
-- Phase 0, Phase 1
-- TASK-001 TenantIsolationTest
-- TASK-002 Stock reserve/release/commit domain events
-- TASK-003 Sales → Inventory Application API only
-- **TASK-006:** `bootstrap/providers.php` — removed duplicate `InventoryServiceProvider::class`
 
-## In Progress
-- None
+- Tenant isolation, stock events, Sales→Inventory boundary
+- Outbox shared_outbox, idempotency recovery, stock ledger, markPaid guards
+- MinorMoney, OpenAPI contract tests, E2E commerce path
+- Nuxt UI: auth, business, products, stock, orders(+detail/cancel), payments, shipments, members, audit, toast
+- Root artifact cleanup; single frontend/pages tree; Laravel root package.json restored
+- CI runs npm run build for frontend
 
-## Blocked
-- PHPUnit needs PHP ≥8.4
+## Next
 
-## Next Task
-- **TASK-004:** Unify outbox storage (`shared_outbox` vs `integration_outbox_messages`)
-- or **TASK-005:** Idempotency failure recovery
+1. OpenAPI ↔ route reconciliation
+2. Password reset (if product requires)
+3. i18n fa/en + RTL
+4. Request correlation id / structured logs
 
-## Last Verified Commit
-- Baseline `952856a6`; local changes in artifacts + working tree copies
+## Rules
+
+- Do not reintroduce artifacts at repo root
+- Do not duplicate frontend/app/pages beside frontend/pages
