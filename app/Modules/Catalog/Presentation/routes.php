@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use StoreYar\Modules\Catalog\Presentation\Http\Controllers\ProductController;
+use StoreYar\Modules\Catalog\Presentation\Http\Controllers\CategoryController;
 
 
 Route::get('/', [ProductController::class, 'index']);
@@ -19,3 +20,6 @@ Route::patch('/{id}/price', [ProductController::class, 'changePrice']);
 Route::post('/{id}/archive', [ProductController::class, 'archive']);
 
 Route::patch('/{id}', [ProductController::class, 'rename']);
+
+
+Route::patch('/{id}/category', [CategoryController::class, 'assignToProduct']);

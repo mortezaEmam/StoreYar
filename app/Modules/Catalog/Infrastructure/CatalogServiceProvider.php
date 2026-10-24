@@ -9,17 +9,25 @@ use StoreYar\Modules\Catalog\Application\Commands\ActivateProduct\ActivateProduc
 use StoreYar\Modules\Catalog\Application\Commands\ActivateProduct\ActivateProductHandler;
 use StoreYar\Modules\Catalog\Application\Commands\ArchiveProduct\ArchiveProductCommand;
 use StoreYar\Modules\Catalog\Application\Commands\ArchiveProduct\ArchiveProductHandler;
+use StoreYar\Modules\Catalog\Application\Commands\AssignProductCategory\AssignProductCategoryCommand;
+use StoreYar\Modules\Catalog\Application\Commands\AssignProductCategory\AssignProductCategoryHandler;
 use StoreYar\Modules\Catalog\Application\Commands\ChangeProductPrice\ChangeProductPriceCommand;
 use StoreYar\Modules\Catalog\Application\Commands\ChangeProductPrice\ChangeProductPriceHandler;
+use StoreYar\Modules\Catalog\Application\Commands\CreateCategory\CreateCategoryCommand;
+use StoreYar\Modules\Catalog\Application\Commands\CreateCategory\CreateCategoryHandler;
 use StoreYar\Modules\Catalog\Application\Commands\CreateProduct\CreateProductCommand;
 use StoreYar\Modules\Catalog\Application\Commands\CreateProduct\CreateProductHandler;
 use StoreYar\Modules\Catalog\Application\Commands\RenameProduct\RenameProductCommand;
 use StoreYar\Modules\Catalog\Application\Commands\RenameProduct\RenameProductHandler;
 use StoreYar\Modules\Catalog\Application\Queries\GetProductById\GetProductByIdHandler;
 use StoreYar\Modules\Catalog\Application\Queries\GetProductById\GetProductByIdQuery;
+use StoreYar\Modules\Catalog\Application\Queries\ListCategories\ListCategoriesHandler;
+use StoreYar\Modules\Catalog\Application\Queries\ListCategories\ListCategoriesQuery;
 use StoreYar\Modules\Catalog\Application\Queries\ListProductsByOrganization\ListProductsByOrganizationHandler;
 use StoreYar\Modules\Catalog\Application\Queries\ListProductsByOrganization\ListProductsByOrganizationQuery;
+use StoreYar\Modules\Catalog\Domain\Contracts\CategoryRepository;
 use StoreYar\Modules\Catalog\Domain\Contracts\ProductRepository;
+use StoreYar\Modules\Catalog\Infrastructure\Persistence\Eloquent\EloquentCategoryRepository;
 use StoreYar\Modules\Catalog\Infrastructure\Persistence\Eloquent\EloquentProductRepository;
 use StoreYar\Shared\Application\Bus\Command\CommandHandlerRegistry;
 use StoreYar\Shared\Application\Bus\Query\QueryHandlerRegistry;
@@ -71,5 +79,12 @@ final class CatalogServiceProvider extends ServiceProvider
             GetProductByIdQuery::class,
             GetProductByIdHandler::class,
         );
+
+
+        $this->app->singleton(CategoryRepository::class, EloquentCategoryRepository::class);
+
+        $registry->register(CreateCategoryCommand::class, CreateCategoryHandler::class);
+        $registry->register(AssignProductCategoryCommand::class, AssignProductCategoryHandler::class);
+        $queryRegistry->register(ListCategoriesQuery::class, ListCategoriesHandler::class);
     }
 }

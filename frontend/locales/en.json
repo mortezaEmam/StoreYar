@@ -172,5 +172,11 @@
   "members.confirmRemove": "Remove this member from the organization?",
   "members.updated": "Member updated",
   "members.removed": "Member removed",
-  "members.cannotRemoveOwner": "Cannot remove the owner here."
+  "members.cannotRemoveOwner": "Cannot remove the owner here.",
+    "nav.categories": "Categories",
+    "categories.title": "Categories",
+    "categories.add": "Add category",
+    "categories.name": "Name",
+    "categories.empty": "No categories yet.",
+    "categories.created": "Category created"
 }

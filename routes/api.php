@@ -28,7 +28,9 @@ Route::middleware(['auth.session', 'business.context', 'org.member'])
     ->prefix('products')
     ->group(base_path('app/Modules/Catalog/Presentation/routes.php'));
 
-
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('categories')
+    ->group(base_path('app/Modules/Catalog/Presentation/routes_categories.php'));
 
 Route::middleware(['auth.session', 'business.context', 'org.member'])
     ->prefix('stock')
