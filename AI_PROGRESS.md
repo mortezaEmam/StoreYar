@@ -1,51 +1,26 @@
 # AI_PROGRESS
 
-## Status (2026-10-24)
+## Done (through final-steps package)
 
-| Area | Status |
-|------|--------|
-| Modular DDD backend | Done |
-| Tenant isolation tests | Done |
-| Outbox / idempotency | Done |
-| OpenAPI ↔ routes | Done (incl. forgot/reset, product price/rename, business ping) |
-| Password reset API | Done |
-| X-Request-Id middleware | Done |
-| Mail password-reset notifier | Done (testing → Array; else Mail) |
-| Nuxt admin UI | Done |
-| i18n en/fa + RTL | Done (auth + commerce + members/audit) |
-| Root hygiene | Apply if still polluted |
+- DDD modules, tenant isolation, outbox, idempotency
+- OpenAPI reconciliation + contract tests
+- Password reset + Mail notifier + Array in testing
+- X-Request-Id
+- Nuxt UI + i18n en/fa
+- **CI:** backend suite + frontend `nuxi prepare` + `npm run build`
+- **SMTP docs:** `docs/MAIL_SMTP.md`
+- **Playwright smoke:** `frontend/e2e/smoke.spec.ts`
 
-## Verified tests (local)
-
-- `tests/Feature/Modules/Identity/PasswordResetTest`
-- `tests/Feature/Shared/RequestIdMiddlewareTest`
-- `tests/Contract/OpenApiContractTest`
-
-## Runbook
+## Local verify
 
 ```bash
-# API
-composer install && cp .env.example .env && php artisan key:generate
-# set DB_* MAIL_* FRONTEND_URL in .env
-php artisan migrate
-php artisan serve
-
-# UI
-cd frontend && npm install --legacy-peer-deps
-export NUXT_PUBLIC_API_BASE=http://localhost:8000/api
-npm run dev
+php artisan test tests/Feature/Modules/Identity/PasswordResetTest.php
+php artisan test tests/Contract
+cd frontend && npm run build
+# optional: npm run test:e2e with dev server up
 ```
 
-## Next backlog (priority)
+## Remaining product decisions (not blocking)
 
-1. **P2** — Real SMTP in staging; never log reset tokens outside local/testing
-2. **P2** — Expand `t()` only where new UI strings appear
-3. **P2** — Frontend CI: `npm run build` on every PR (if not already on branch)
-4. **P3** — Browser E2E (Playwright) for login → order happy path
-5. **P3** — Product categories / richer RBAC when product requires
-
-## Rules
-
-- New HTTP route ⇒ update `openapi/openapi.yaml` + contract test same change
-- Do not commit `*.patch` / agent artifacts at repo root
-- Identity aggregate uses `userId()`, not `id()`
+- Categories, discounts, multi-warehouse
+- Full Playwright against live API (login → order) when stable seed data exists

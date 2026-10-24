@@ -43,12 +43,15 @@ jobs:
           echo "DB_DATABASE=storeyar_testing" >> .env
           echo "DB_USERNAME=storeyar" >> .env
           echo "DB_PASSWORD=storeyar" >> .env
+          echo "MAIL_MAILER=array" >> .env
+          echo "FRONTEND_URL=http://localhost:3000" >> .env
       - run: php artisan migrate --force
       - run: find app tests -type f -name "*.php" -print0 | xargs -0 -n1 php -l
       - run: php artisan test tests/Architecture
       - run: php artisan test tests/Security
-      - name: Contract tests
-        run: php artisan test tests/Contract
+      - run: php artisan test tests/Contract
+      - run: php artisan test tests/Feature/Modules/Identity/PasswordResetTest.php
+      - run: php artisan test tests/Feature/Shared/RequestIdMiddlewareTest.php
       - run: php artisan test
 
   frontend:
