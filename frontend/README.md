@@ -1,6 +1,14 @@
-# StoreYar Frontend
+# StoreYar frontend (Nuxt 3)
 
-## Run
+Admin UI for the StoreYar multi-tenant commerce API.
+
+## Stack
+
+- Nuxt 3 + Vue 3 + Pinia
+- `useApi` → Laravel `/api` with Bearer + `X-Business-Id` + optional `Idempotency-Key`
+- i18n: `locales/en.json`, `locales/fa.json`, `composables/useI18n.ts` (RTL when `fa`)
+
+## Setup
 
 ```bash
 cd frontend
@@ -9,37 +17,35 @@ export NUXT_PUBLIC_API_BASE=http://localhost:8000/api
 npm run dev
 ```
 
-Open the URL printed by Nuxt (often `http://localhost:3001` if 3000 is busy).
+Open the URL Nuxt prints (often `http://localhost:3001` if 3000 is busy).
 
-Backend:
+## Auth flow
 
-```bash
-cd ..   # repo root
-php artisan serve
-```
+1. Register / login → token in Pinia + `localStorage`
+2. Create or select organization on **Business**
+3. All product/stock/order calls send `X-Business-Id`
+4. Forgot password → email (or log in local) → **Reset password** with token
 
-## CORS
-
-If the browser blocks API calls, copy `config/cors.php` paths from the project
-or merge `allowed_origins` for `localhost:3000` and `3001`.
-
-## Structure
+## Layout
 
 ```
 pages/          routes
-layouts/        default shell + toasts
-composables/    useApi, useToast
-stores/         session (Pinia)
-assets/css/     design system
+layouts/        default shell + nav + toast
+composables/    useApi, useToast, useI18n
+stores/         session
+locales/        en.json, fa.json
+middleware/     auth
+plugins/        session + i18n hydrate
 ```
 
-## Happy path
+## Language
 
-1. Register / Login  
-2. Business → create or select org  
-3. Products → add  
-4. Stock → initialize  
-5. Orders → draft → line → confirm  
-6. Payments → initiate → succeed  
-7. Shipments → create → ship  
-8. Audit → review  
+Use the **فا / EN** control on auth cards and the main header. Preference is stored in `localStorage` (`storeyar_locale`).
+
+## Build
+
+```bash
+npm run build
+```
+
+Requires Node 20+.
