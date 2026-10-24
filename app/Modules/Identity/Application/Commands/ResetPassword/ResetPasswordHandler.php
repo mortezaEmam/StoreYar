@@ -7,11 +7,11 @@ namespace StoreYar\Modules\Identity\Application\Commands\ResetPassword;
 use StoreYar\Modules\Identity\Application\Commands\RevokeAllUserSessions\RevokeAllUserSessionsCommand;
 use StoreYar\Modules\Identity\Domain\Contracts\PasswordHasher;
 use StoreYar\Modules\Identity\Domain\Contracts\PasswordResetTokenRepository;
+use StoreYar\Modules\Identity\Domain\Contracts\SessionRepository;
 use StoreYar\Modules\Identity\Domain\Contracts\UserCredentialRepository;
 use StoreYar\Modules\Identity\Domain\Contracts\UserRepository;
 use StoreYar\Modules\Identity\Domain\Exceptions\InvalidCredentials;
 use StoreYar\Shared\Application\Bus\Command\Command;
-use StoreYar\Shared\Application\Bus\Command\CommandBus;
 use StoreYar\Shared\Application\Bus\Command\CommandHandler;
 
 final readonly class ResetPasswordHandler implements CommandHandler
@@ -21,7 +21,7 @@ final readonly class ResetPasswordHandler implements CommandHandler
         private PasswordResetTokenRepository $tokens,
         private PasswordHasher $passwordHasher,
         private UserCredentialRepository $credentials,
-        private CommandBus $commands,
+        private SessionRepository $sessions,
     ) {}
 
     public function handle(Command $command): mixed
@@ -44,12 +44,11 @@ final readonly class ResetPasswordHandler implements CommandHandler
         }
 
         $passwordHash = $this->passwordHasher->hash($command->password);
-        $this->credentials->savePasswordHash($user->id(), $passwordHash);
+        $this->credentials->savePasswordHash($user->userId(), $passwordHash);
         $this->tokens->deleteByEmail($email);
 
-        $this->commands->dispatch(
-            new RevokeAllUserSessionsCommand(userId: $user->id()->value()),
-        );
+        // Direct session revoke — avoid nested CommandBus dispatch
+        $this->sessions->revokeAllForUser($user->userId()->value());
 
         return null;
     }
