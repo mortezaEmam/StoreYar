@@ -166,5 +166,11 @@
   "products.archived": "Product archived",
   "products.confirmArchive": "Archive this product?",
   "common.cancel": "Cancel",
-  "common.close": "Close"
+  "common.close": "Close",
+  "members.changeRole": "Change role",
+  "members.remove": "Remove",
+  "members.confirmRemove": "Remove this member from the organization?",
+  "members.updated": "Member updated",
+  "members.removed": "Member removed",
+  "members.cannotRemoveOwner": "Cannot remove the owner here."
 }

@@ -166,5 +166,11 @@
   "products.archived": "محصول بایگانی شد",
   "products.confirmArchive": "این محصول بایگانی شود؟",
   "common.cancel": "انصراف",
-  "common.close": "بستن"
+  "common.close": "بستن",
+  "members.changeRole": "تغییر نقش",
+  "members.remove": "حذف",
+  "members.confirmRemove": "این عضو از سازمان حذف شود؟",
+  "members.updated": "عضو به‌روز شد",
+  "members.removed": "عضو حذف شد",
+  "members.cannotRemoveOwner": "مالک را از اینجا نمی‌توان حذف کرد."
 }
