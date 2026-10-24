@@ -9,6 +9,7 @@
       <div class="brand">{{ t('app.name') }}</div>
       <h1>{{ t('auth.login.title') }}</h1>
       <p class="sub">{{ t('auth.login.sub') }}</p>
+      <p class="hint" style="font-size:0.75rem;opacity:.7">API: {{ apiBase }}</p>
       <form @submit.prevent="onSubmit">
         <label>{{ t('auth.email') }}
           <input v-model="email" type="email" required autocomplete="username" placeholder="you@example.com" />
@@ -39,13 +40,23 @@ const error = ref('')
 const pending = ref(false)
 const api = useApi()
 const session = useSessionStore()
+const apiBase = api.base
+
 async function onSubmit() {
   pending.value = true
   error.value = ''
   try {
-    const res = await api.post<any>('/auth/login', { email: email.value, password: password.value })
-    session.setToken(res.data.token)
-    session.setUser(res.data.user)
+    const res = await api.post<any>('/auth/login', {
+      email: email.value.trim(),
+      password: password.value,
+    })
+    const body = api.unwrap<{ token?: string; user?: any }>(res)
+    const token = body?.token
+    if (!token || typeof token !== 'string') {
+      throw new Error('Login response had no token. Check API response in Network tab.')
+    }
+    session.setToken(token)
+    if (body.user) session.setUser(body.user)
     await navigateTo('/business')
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : t('auth.login.failed')
