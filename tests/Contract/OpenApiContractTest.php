@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Contract;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * TASK-012: Critical paths present in openapi/openapi.yaml.
+ * Critical HTTP surface documented in openapi/openapi.yaml must stay in sync with routes.
  */
 final class OpenApiContractTest extends TestCase
 {
@@ -17,7 +18,7 @@ final class OpenApiContractTest extends TestCase
     {
         parent::setUp();
 
-        $path = dirname(__DIR__, 2) . '/openapi/openapi.yaml';
+        $path = dirname(__DIR__, 2).'/openapi/openapi.yaml';
         self::assertFileExists($path);
 
         $content = file_get_contents($path);
@@ -41,20 +42,31 @@ final class OpenApiContractTest extends TestCase
             ['  /auth/register:'],
             ['  /auth/logout:'],
             ['  /auth/me:'],
+            ['  /auth/rotate:'],
+            ['  /business/ping:'],
             ['  /organizations:'],
+            ['  /organizations/{id}/members:'],
             ['  /products:'],
             ['  /products/{id}:'],
+            ['  /products/{id}/price:'],
+            ['  /products/{id}/activate:'],
+            ['  /products/{id}/archive:'],
             ['  /stock:'],
+            ['  /stock/{productId}/adjust:'],
             ['  /orders:'],
+            ['  /orders/{id}:'],
+            ['  /orders/{id}/lines:'],
             ['  /orders/{id}/confirm:'],
+            ['  /orders/{id}/cancel:'],
             ['  /payments:'],
+            ['  /payments/{id}/succeed:'],
             ['  /shipments:'],
+            ['  /shipments/{id}/ship:'],
+            ['  /audit-log:'],
         ];
     }
 
-    /**
-     * @dataProvider criticalPathFragmentsProvider
-     */
+    #[DataProvider('criticalPathFragmentsProvider')]
     public function test_critical_path_is_documented(string $fragment): void
     {
         self::assertStringContainsString(
@@ -62,6 +74,16 @@ final class OpenApiContractTest extends TestCase
             $this->spec,
             "OpenAPI missing path fragment: {$fragment}",
         );
+    }
+
+    public function test_product_rename_and_price_methods_documented(): void
+    {
+        // PATCH under /products/{id} (rename) and /products/{id}/price
+        self::assertMatchesRegularExpression(
+            '/\/products\/\{id\}:[\s\S]*?patch:/',
+            $this->spec,
+        );
+        self::assertStringContainsString('  /products/{id}/price:', $this->spec);
     }
 
     public function test_security_components_documented(): void

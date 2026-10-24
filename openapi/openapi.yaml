@@ -303,6 +303,28 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+
+  /business/ping:
+    get:
+      tags: [Auth]
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+      summary: Resolve current business context (session + X-Business-Id)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  business_id: { type: string }
+                  branch_id: { type: string, nullable: true }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /organizations:
     get:
       tags: [Organizations]
@@ -534,6 +556,53 @@ paths:
           description: OK
         '404':
           $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Products]
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+        - $ref: '#/components/parameters/ResourceId'
+      summary: Rename product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+      responses:
+        '200':
+          description: OK
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+
+  /products/{id}/price:
+    patch:
+      tags: [Products]
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+        - $ref: '#/components/parameters/ResourceId'
+      summary: Change product unit price
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [unit_price_amount]
+              properties:
+                unit_price_amount: { type: integer, minimum: 0 }
+                currency: { type: string, default: IRR }
+      responses:
+        '200':
+          description: OK
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
 
   /products/{id}/activate:
     post:

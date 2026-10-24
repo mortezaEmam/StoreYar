@@ -5,28 +5,24 @@
 | Phase | Status |
 |-------|--------|
 | Phase 0 — Architecture audit | Done |
-| Phase 0b — Baseline hygiene | **Done** |
-| Phase 1 — Frontend CI build | **Done** |
+| Phase 0b — Baseline hygiene | Apply locally if not pushed |
+| Phase 1 — Frontend CI build | Apply locally if not pushed |
+| OpenAPI ↔ routes reconciliation | **Done (this change)** |
 | TASK-001 … TASK-014 | Done (git history) |
-| Frontend commerce UI | Done (structure cleaned) |
 
-## Completed
+## Completed recently
 
-- Tenant isolation, stock events, Sales→Inventory boundary
-- Outbox shared_outbox, idempotency recovery, stock ledger, markPaid guards
-- MinorMoney, OpenAPI contract tests, E2E commerce path
-- Nuxt UI: auth, business, products, stock, orders(+detail/cancel), payments, shipments, members, audit, toast
-- Root artifact cleanup; single frontend/pages tree; Laravel root package.json restored
-- CI runs npm run build for frontend
+- Documented `PATCH /products/{id}`, `PATCH /products/{id}/price`, `GET /business/ping` in OpenAPI
+- Expanded `OpenApiContractTest` critical path matrix + PHPUnit 12 `#[DataProvider]`
 
-## Next
+## Next (priority)
 
-1. OpenAPI ↔ route reconciliation
-2. Password reset (if product requires)
-3. i18n fa/en + RTL
-4. Request correlation id / structured logs
+1. **P1** — Ensure Phase 0b hygiene + CI frontend build are on the branch you deploy
+2. **P2** — Password reset / email verification (product decision)
+3. **P2** — i18n fa/en + RTL foundation
+4. **P2** — Request correlation id on API responses/logs
 
 ## Rules
 
-- Do not reintroduce artifacts at repo root
-- Do not duplicate frontend/app/pages beside frontend/pages
+- New HTTP route ⇒ same PR updates `openapi/openapi.yaml` + contract test
+- Do not reintroduce root artifact pollution
