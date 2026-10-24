@@ -181,5 +181,11 @@
     "categories.created": "Category created",
     "products.filterCategory": "Filter by category",
     "products.filterAll": "All categories",
-    "products.filterEmpty": "No products in this category."
+    "products.filterEmpty": "No products in this category.",
+    "audit.filterAction": "Action",
+    "audit.filterEntity": "Entity type",
+    "audit.filterSearch": "Search",
+    "audit.filterSearchPlaceholder": "Search log…",
+    "audit.filterAll": "All",
+    "audit.filterEmpty": "No entries match the filters."
 }
