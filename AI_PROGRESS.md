@@ -1,26 +1,24 @@
 # AI_PROGRESS
 
-## Done (through final-steps package)
+## Baseline complete
 
-- DDD modules, tenant isolation, outbox, idempotency
-- OpenAPI reconciliation + contract tests
-- Password reset + Mail notifier + Array in testing
-- X-Request-Id
-- Nuxt UI + i18n en/fa
-- **CI:** backend suite + frontend `nuxi prepare` + `npm run build`
-- **SMTP docs:** `docs/MAIL_SMTP.md`
-- **Playwright smoke:** `frontend/e2e/smoke.spec.ts`
+Architecture, security tests, OpenAPI, password reset, correlation id, Nuxt + i18n,
+CI frontend build, SMTP docs, Playwright smoke, API smoke script, deploy outline.
 
-## Local verify
+## Scripts
 
 ```bash
-php artisan test tests/Feature/Modules/Identity/PasswordResetTest.php
-php artisan test tests/Contract
-cd frontend && npm run build
-# optional: npm run test:e2e with dev server up
+# API happy path
+export API_BASE=http://localhost:8000/api
+bash scripts/smoke-api.sh
+
+# Frontend smoke (dev server up)
+cd frontend && E2E_BASE_URL=http://localhost:3001 npm run test:e2e
 ```
 
-## Remaining product decisions (not blocking)
+## Suggested future work (product)
 
-- Categories, discounts, multi-warehouse
-- Full Playwright against live API (login → order) when stable seed data exists
+1. Full Playwright login→order against seeded API
+2. Observability (structured logs + metrics)
+3. Multi-warehouse / categories when required
+4. Harden CORS and secrets per environment
