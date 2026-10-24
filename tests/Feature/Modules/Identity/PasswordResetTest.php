@@ -45,7 +45,7 @@ final class PasswordResetTest extends TestCase
             new CreateUserCommand(email: 'reset@example.com', name: 'Reset User'),
         );
         $commands->dispatch(
-            new SetPasswordCommand(userId: (string) $user->id(), password: 'oldpassword1'),
+            new SetPasswordCommand(userId: $user->userId()->value(), password: 'oldpassword1'),
         );
 
         $this->postJson('/api/auth/forgot-password', [
@@ -78,7 +78,7 @@ final class PasswordResetTest extends TestCase
             new CreateUserCommand(email: 'bad@example.com', name: 'Bad'),
         );
         $commands->dispatch(
-            new SetPasswordCommand(userId: (string) $user->id(), password: 'oldpassword1'),
+            new SetPasswordCommand(userId: $user->userId()->value(), password: 'oldpassword1'),
         );
 
         $this->postJson('/api/auth/forgot-password', ['email' => 'bad@example.com'])
