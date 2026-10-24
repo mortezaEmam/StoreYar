@@ -2,7 +2,12 @@
   <div>
     <div class="page-head">
       <h1>{{ t('audit.title') }}</h1>
-      <button type="button" class="secondary" :disabled="loading" @click="load">{{ t('common.refresh') }}</button>
+      <div class="head-actions">
+        <button type="button" class="secondary" :disabled="loading || !filteredItems.length" @click="exportCsv">
+          {{ t('audit.exportCsv') }}
+        </button>
+        <button type="button" class="secondary" :disabled="loading" @click="load">{{ t('common.refresh') }}</button>
+      </div>
     </div>
     <p v-if="!session.businessId" class="warn">
       {{ t('common.selectBusiness') }}
@@ -78,7 +83,7 @@ function actionOf(row: any) {
 }
 function actorOf(row: any) {
   const id = row.actor_id || row.user_id || row.actor_user_id || ''
-  return id ? String(id).slice(0, 16) + (String(id).length > 16 ? '…' : '') : '—'
+  return id ? String(id) : '—'
 }
 function entityTypeOf(row: any) {
   return String(row.entity_type || row.aggregate_type || row.resource_type || '')
@@ -86,8 +91,7 @@ function entityTypeOf(row: any) {
 function entityOf(row: any) {
   const type = entityTypeOf(row)
   const id = row.entity_id || row.aggregate_id || row.resource_id || ''
-  const short = id ? String(id).slice(0, 12) + '…' : ''
-  return [type, short].filter(Boolean).join(' ') || '—'
+  return [type, id].filter(Boolean).join(' ') || '—'
 }
 function formatWhen(row: any) {
   const raw = row.created_at || row.occurred_at || row.recorded_at || ''
@@ -123,18 +127,38 @@ const filteredItems = computed(() => {
     if (filterAction.value && actionOf(row) !== filterAction.value) return false
     if (filterEntity.value && entityTypeOf(row) !== filterEntity.value) return false
     if (q) {
-      const blob = [
-        actionOf(row),
-        actorOf(row),
-        entityOf(row),
-        formatWhen(row),
-        JSON.stringify(row),
-      ].join(' ').toLowerCase()
+      const blob = [actionOf(row), actorOf(row), entityOf(row), formatWhen(row), JSON.stringify(row)].join(' ').toLowerCase()
       if (!blob.includes(q)) return false
     }
     return true
   })
 })
+
+function csvEscape(v: string) {
+  if (/[",\n]/.test(v)) return `"${v.replace(/"/g, '""')}"`
+  return v
+}
+
+function exportCsv() {
+  const header = ['when', 'action', 'actor', 'entity']
+  const lines = [header.join(',')]
+  for (const row of filteredItems.value) {
+    lines.push([
+      csvEscape(formatWhen(row)),
+      csvEscape(actionOf(row)),
+      csvEscape(actorOf(row)),
+      csvEscape(entityOf(row)),
+    ].join(','))
+  }
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `storeyar-audit-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+  toast.ok(t('audit.exported'))
+}
 
 async function load() {
   if (!session.businessId) return
@@ -155,13 +179,12 @@ watch(() => session.businessId, load, { immediate: true })
 </script>
 
 <style scoped>
+.head-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 1rem;
 }
-.filter-bar input[type="search"] {
-  min-width: 12rem;
-}
+.filter-bar input[type="search"] { min-width: 12rem; }
 </style>

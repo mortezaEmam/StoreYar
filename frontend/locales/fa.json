@@ -187,5 +187,8 @@
     "audit.filterSearch": "جستجو",
     "audit.filterSearchPlaceholder": "جستجو در گزارش…",
     "audit.filterAll": "همه",
-    "audit.filterEmpty": "با این فیلتر نتیجه‌ای نیست."
+    "audit.filterEmpty": "با این فیلتر نتیجه‌ای نیست.",
+    "home.quick": "لینک سریع",
+    "audit.exportCsv": "خروجی csv",
+    "audit.exported": "CSV دانلود"
 }

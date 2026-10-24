@@ -187,5 +187,8 @@
     "audit.filterSearch": "Search",
     "audit.filterSearchPlaceholder": "Search log…",
     "audit.filterAll": "All",
-    "audit.filterEmpty": "No entries match the filters."
+    "audit.filterEmpty": "No entries match the filters.",
+    "home.quick": "Quick links",
+    "audit.exportCsv": "Export CSV",
+    "audit.exported": "CSV downloaded"
 }

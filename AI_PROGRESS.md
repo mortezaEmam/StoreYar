@@ -1,24 +1,40 @@
 # AI_PROGRESS
 
-## Baseline complete
+## Product baseline — complete (2026-10-24)
 
-Architecture, security tests, OpenAPI, password reset, correlation id, Nuxt + i18n,
-CI frontend build, SMTP docs, Playwright smoke, API smoke script, deploy outline.
+### Backend
+- Modular DDD (Identity, Organization, Catalog, Inventory, Sales, Payments, Shipping)
+- Tenant isolation, outbox, idempotency
+- OpenAPI + contract tests
+- Password reset + mail notifier
+- X-Request-Id
+- Product categories API
 
-## Scripts
+### Frontend (Nuxt 3)
+- Auth (login/register/forgot/reset), business context
+- Products (CRUD actions, category assign + filter)
+- Stock, orders, payments, shipments, members, audit
+- Categories page
+- i18n en/fa + RTL
+- Dashboard stats
+- Audit filters + CSV export
+
+### Ops
+- CI: PHPUnit + frontend build
+- `scripts/smoke-api.sh`
+- docs: MAIL_SMTP, DEPLOY, OPS_CHECKLIST
+
+## Verify locally
 
 ```bash
-# API happy path
-export API_BASE=http://localhost:8000/api
+php artisan serve
+cd frontend && NUXT_PUBLIC_API_BASE=http://127.0.0.1:8000/api npm run dev
 bash scripts/smoke-api.sh
-
-# Frontend smoke (dev server up)
-cd frontend && E2E_BASE_URL=http://localhost:3001 npm run test:e2e
 ```
 
-## Suggested future work (product)
+## Future (optional product backlog)
 
-1. Full Playwright login→order against seeded API
-2. Observability (structured logs + metrics)
-3. Multi-warehouse / categories when required
-4. Harden CORS and secrets per environment
+- Server-side audit pagination/filter
+- Full Playwright login→order against seed data
+- Multi-warehouse / discounts
+- Observability metrics dashboard
