@@ -22,7 +22,9 @@
         </form>
         <p class="hint">{{ t('products.priceHint') }}</p>
       </div>
+
       <p v-if="error" class="err">{{ error }}</p>
+
       <div v-if="items.length" class="table-wrap">
         <table>
           <thead>
@@ -31,6 +33,7 @@
               <th>{{ t('products.sku') }}</th>
               <th>{{ t('products.price') }}</th>
               <th>{{ t('products.status') }}</th>
+              <th>{{ t('products.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -38,16 +41,65 @@
               <td>{{ p.name }}</td>
               <td><code style="font-size:.8rem">{{ p.sku }}</code></td>
               <td>{{ p.unit_price_amount }} {{ p.currency || 'IRR' }}</td>
-              <td><span class="badge" :class="p.status">{{ p.status || '—' }}</span></td>
+              <td><span class="badge" :class="String(p.status || '').toLowerCase()">{{ p.status || '—' }}</span></td>
+              <td>
+                <div class="row-actions">
+                  <button type="button" class="secondary" :disabled="pending" @click="openRename(p)">{{ t('products.rename') }}</button>
+                  <button type="button" class="secondary" :disabled="pending" @click="openPrice(p)">{{ t('products.changePrice') }}</button>
+                  <button
+                    v-if="!isActive(p)"
+                    type="button"
+                    class="secondary"
+                    :disabled="pending"
+                    @click="activate(p)"
+                  >{{ t('products.activate') }}</button>
+                  <button
+                    v-if="!isArchived(p)"
+                    type="button"
+                    class="danger"
+                    :disabled="pending"
+                    @click="archive(p)"
+                  >{{ t('products.archive') }}</button>
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
       <div v-else-if="!loading" class="empty">{{ t('products.empty') }}</div>
       <p v-if="loading" class="hint">{{ t('common.loading') }}</p>
+
+      <!-- Rename dialog -->
+      <div v-if="dialog === 'rename'" class="modal-backdrop" @click.self="dialog = null">
+        <div class="modal card">
+          <div class="card-title">{{ t('products.rename') }}</div>
+          <label>{{ t('products.newName') }}
+            <input v-model="editName" required />
+          </label>
+          <div class="row-actions">
+            <button type="button" :disabled="pending" @click="submitRename">{{ t('common.save') }}</button>
+            <button type="button" class="secondary" @click="dialog = null">{{ t('common.cancel') }}</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Price dialog -->
+      <div v-if="dialog === 'price'" class="modal-backdrop" @click.self="dialog = null">
+        <div class="modal card">
+          <div class="card-title">{{ t('products.changePrice') }}</div>
+          <label>{{ t('products.newPrice') }}
+            <input v-model.number="editPrice" type="number" min="0" required />
+          </label>
+          <div class="row-actions">
+            <button type="button" :disabled="pending" @click="submitPrice">{{ t('common.save') }}</button>
+            <button type="button" class="secondary" @click="dialog = null">{{ t('common.cancel') }}</button>
+          </div>
+        </div>
+      </div>
     </template>
   </div>
 </template>
+
 <script setup lang="ts">
 import { useSessionStore } from '~/stores/session'
 definePageMeta({ middleware: 'auth' })
@@ -55,11 +107,25 @@ const { t } = useI18n()
 const api = useApi()
 const session = useSessionStore()
 const toast = useToast()
+
 const items = ref<any[]>([])
 const loading = ref(false)
 const pending = ref(false)
 const error = ref('')
 const form = reactive({ name: '', sku: '', unit_price_amount: 1000, currency: 'IRR' })
+
+const dialog = ref<'rename' | 'price' | null>(null)
+const active = ref<any>(null)
+const editName = ref('')
+const editPrice = ref(0)
+
+function isActive(p: any) {
+  return String(p.status || '').toLowerCase() === 'active'
+}
+function isArchived(p: any) {
+  return String(p.status || '').toLowerCase() === 'archived'
+}
+
 async function load() {
   if (!session.businessId) return
   loading.value = true
@@ -74,6 +140,7 @@ async function load() {
     loading.value = false
   }
 }
+
 async function create() {
   pending.value = true
   error.value = ''
@@ -90,5 +157,108 @@ async function create() {
     pending.value = false
   }
 }
+
+function openRename(p: any) {
+  active.value = p
+  editName.value = p.name || ''
+  dialog.value = 'rename'
+}
+function openPrice(p: any) {
+  active.value = p
+  editPrice.value = Number(p.unit_price_amount || 0)
+  dialog.value = 'price'
+}
+
+async function submitRename() {
+  if (!active.value?.id) return
+  pending.value = true
+  error.value = ''
+  try {
+    await api.patch(`/products/${active.value.id}`, { name: editName.value }, crypto.randomUUID())
+    toast.ok(t('products.renamed'))
+    dialog.value = null
+    await load()
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : t('common.error')
+    toast.err(error.value)
+  } finally {
+    pending.value = false
+  }
+}
+
+async function submitPrice() {
+  if (!active.value?.id) return
+  pending.value = true
+  error.value = ''
+  try {
+    await api.patch(
+      `/products/${active.value.id}/price`,
+      { unit_price_amount: editPrice.value, currency: active.value.currency || 'IRR' },
+      crypto.randomUUID(),
+    )
+    toast.ok(t('products.priceChanged'))
+    dialog.value = null
+    await load()
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : t('common.error')
+    toast.err(error.value)
+  } finally {
+    pending.value = false
+  }
+}
+
+async function activate(p: any) {
+  pending.value = true
+  error.value = ''
+  try {
+    await api.post(`/products/${p.id}/activate`, {}, crypto.randomUUID())
+    toast.ok(t('products.activated'))
+    await load()
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : t('common.error')
+    toast.err(error.value)
+  } finally {
+    pending.value = false
+  }
+}
+
+async function archive(p: any) {
+  if (!confirm(t('products.confirmArchive'))) return
+  pending.value = true
+  error.value = ''
+  try {
+    await api.post(`/products/${p.id}/archive`, {}, crypto.randomUUID())
+    toast.ok(t('products.archived'))
+    await load()
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : t('common.error')
+    toast.err(error.value)
+  } finally {
+    pending.value = false
+  }
+}
+
 watch(() => session.businessId, load, { immediate: true })
 </script>
+
+<style scoped>
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 24, 40, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  padding: 1rem;
+}
+.modal {
+  width: min(24rem, 100%);
+  margin: 0;
+}
+</style>

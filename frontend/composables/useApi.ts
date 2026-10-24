@@ -1,60 +1,61 @@
 import { useSessionStore } from '~/stores/session'
 
+type ApiOptions = {
+  method?: string
+  body?: unknown
+  idempotencyKey?: string
+  headers?: Record<string, string>
+}
+
 export function useApi() {
   const config = useRuntimeConfig()
   const session = useSessionStore()
+  const base = (config.public.apiBase as string) || 'http://localhost:8000/api'
 
-  function baseHeaders(extra?: HeadersInit): Headers {
-    const h = new Headers(extra)
-    h.set('Accept', 'application/json')
-    if (!h.has('Content-Type')) h.set('Content-Type', 'application/json')
-    if (session.token) h.set('Authorization', `Bearer ${session.token}`)
-    if (session.businessId) h.set('X-Business-Id', session.businessId)
-    return h
-  }
+  async function request<T = any>(path: string, options: ApiOptions = {}): Promise<T> {
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+      ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      ...(options.headers || {}),
+    }
+    if (session.token) headers.Authorization = `Bearer ${session.token}`
+    if (session.businessId) headers['X-Business-Id'] = session.businessId
+    if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey
 
-  async function request<T>(
-    path: string,
-    options: RequestInit & { idempotencyKey?: string } = {},
-  ): Promise<T> {
-    const { idempotencyKey, ...init } = options
-    const headers = baseHeaders(init.headers)
-    if (idempotencyKey) headers.set('Idempotency-Key', idempotencyKey)
+    const res = await fetch(`${base}${path}`, {
+      method: options.method || 'GET',
+      headers,
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    })
 
-    const res = await fetch(`${config.public.apiBase}${path}`, { ...init, headers })
-
-    if (res.status === 401) {
-      session.clear()
-      if (import.meta.client) await navigateTo('/login')
-      throw new Error('Unauthorized')
+    const text = await res.text()
+    let data: any = null
+    try {
+      data = text ? JSON.parse(text) : null
+    } catch {
+      data = text
     }
 
     if (!res.ok) {
-      let message = `API ${res.status}`
-      try {
-        const body = await res.json()
-        if (body?.message) message = body.message
-      } catch { /* ignore */ }
-      throw new Error(message)
+      const msg =
+        (data && (data.message || data.error)) ||
+        (typeof data === 'string' && data) ||
+        `HTTP ${res.status}`
+      throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg))
     }
 
-    if (res.status === 204) return undefined as T
-    return (await res.json()) as T
+    return data as T
   }
 
   return {
-    get: <T>(path: string) => request<T>(path, { method: 'GET' }),
-    post: <T>(path: string, body?: unknown, idempotencyKey?: string) =>
-      request<T>(path, {
-        method: 'POST',
-        body: body !== undefined ? JSON.stringify(body) : undefined,
-        idempotencyKey,
-      }),
-    patch: <T>(path: string, body?: unknown) =>
-      request<T>(path, {
-        method: 'PATCH',
-        body: body !== undefined ? JSON.stringify(body) : undefined,
-      }),
-    del: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+    get: <T = any>(path: string) => request<T>(path, { method: 'GET' }),
+    post: <T = any>(path: string, body?: unknown, idempotencyKey?: string) =>
+      request<T>(path, { method: 'POST', body, idempotencyKey }),
+    patch: <T = any>(path: string, body?: unknown, idempotencyKey?: string) =>
+      request<T>(path, { method: 'PATCH', body, idempotencyKey }),
+    put: <T = any>(path: string, body?: unknown, idempotencyKey?: string) =>
+      request<T>(path, { method: 'PUT', body, idempotencyKey }),
+    del: <T = any>(path: string, idempotencyKey?: string) =>
+      request<T>(path, { method: 'DELETE', idempotencyKey }),
   }
 }

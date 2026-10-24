@@ -152,5 +152,19 @@
   "audit.action": "عملیات",
   "audit.actor": "عامل",
   "audit.entity": "موجودیت",
-  "audit.when": "زمان"
+  "audit.when": "زمان",
+  "products.actions": "عملیات",
+  "products.rename": "تغییر نام",
+  "products.changePrice": "تغییر قیمت",
+  "products.activate": "فعال‌سازی",
+  "products.archive": "بایگانی",
+  "products.newName": "نام جدید",
+  "products.newPrice": "قیمت جدید (واحد خرد)",
+  "products.renamed": "نام محصول تغییر کرد",
+  "products.priceChanged": "قیمت به‌روز شد",
+  "products.activated": "محصول فعال شد",
+  "products.archived": "محصول بایگانی شد",
+  "products.confirmArchive": "این محصول بایگانی شود؟",
+  "common.cancel": "انصراف",
+  "common.close": "بستن"
 }

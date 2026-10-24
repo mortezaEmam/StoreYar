@@ -152,5 +152,19 @@
   "audit.action": "Action",
   "audit.actor": "Actor",
   "audit.entity": "Entity",
-  "audit.when": "When"
+  "audit.when": "When",
+  "products.actions": "Actions",
+  "products.rename": "Rename",
+  "products.changePrice": "Change price",
+  "products.activate": "Activate",
+  "products.archive": "Archive",
+  "products.newName": "New name",
+  "products.newPrice": "New price (minor units)",
+  "products.renamed": "Product renamed",
+  "products.priceChanged": "Price updated",
+  "products.activated": "Product activated",
+  "products.archived": "Product archived",
+  "products.confirmArchive": "Archive this product?",
+  "common.cancel": "Cancel",
+  "common.close": "Close"
 }
