@@ -178,5 +178,8 @@
     "categories.add": "Add category",
     "categories.name": "Name",
     "categories.empty": "No categories yet.",
-    "categories.created": "Category created"
+    "categories.created": "Category created",
+    "products.filterCategory": "Filter by category",
+    "products.filterAll": "All categories",
+    "products.filterEmpty": "No products in this category."
 }

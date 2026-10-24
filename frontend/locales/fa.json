@@ -178,5 +178,8 @@
     "categories.add": "افزودن دسته بندی",
     "categories.name": "نام",
     "categories.empty": "دسته وجود ندارد",
-    "categories.created": "ذسته بندی ایجاد شد"
+    "categories.created": "ذسته بندی ایجاد شد",
+    "products.filterCategory": "فیلتر بر اساس دسته",
+    "products.filterAll": "همه دسته‌ها",
+    "products.filterEmpty": "در این دسته محصولی نیست."
 }
