@@ -4,6 +4,7 @@
       <nav class="nav">
         <NuxtLink to="/">{{ t('nav.home') }}</NuxtLink>
         <NuxtLink to="/business">{{ t('nav.business') }}</NuxtLink>
+        <NuxtLink to="/categories">{{ t('nav.categories') }}</NuxtLink>
         <NuxtLink to="/products">{{ t('nav.products') }}</NuxtLink>
         <NuxtLink to="/stock">{{ t('nav.stock') }}</NuxtLink>
         <NuxtLink to="/orders">{{ t('nav.orders') }}</NuxtLink>
@@ -22,14 +23,24 @@
     <main class="main">
       <slot />
     </main>
-    <div v-if="toast.message" class="toast" :class="toast.type">{{ toast.message }}</div>
+    <div class="toast-stack">
+      <div
+        v-for="item in toasts"
+        :key="item.id"
+        class="toast"
+        :class="item.kind"
+      >
+        {{ item.message }}
+      </div>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
 import { useSessionStore } from '~/stores/session'
 const session = useSessionStore()
 const { t, locale, setLocale } = useI18n()
-const { toast } = useToast()
+const { toasts } = useToast()
+
 async function logout() {
   try {
     const api = useApi()
@@ -41,17 +52,23 @@ async function logout() {
 </script>
 <style scoped>
 .header-actions { display: flex; gap: 0.5rem; align-items: center; }
-.toast {
+.toast-stack {
   position: fixed;
   bottom: 1.25rem;
   inset-inline-end: 1.25rem;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: min(24rem, 90vw);
+}
+.toast {
   padding: 0.75rem 1rem;
   border-radius: 8px;
   background: #101828;
   color: #fff;
-  z-index: 50;
-  max-width: min(24rem, 90vw);
 }
 .toast.ok { background: #027a48; }
 .toast.err { background: #b42318; }
+.toast.hint { background: #344054; }
 </style>
