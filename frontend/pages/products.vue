@@ -1,28 +1,38 @@
 <template>
   <div>
-    <div class="page-head"><h1>Products</h1></div>
-    <p v-if="!session.businessId" class="warn">Select a business first. <NuxtLink to="/business">Choose business</NuxtLink></p>
+    <div class="page-head"><h1>{{ t('products.title') }}</h1></div>
+    <p v-if="!session.businessId" class="warn">
+      {{ t('common.selectBusiness') }}
+      <NuxtLink to="/business">{{ t('common.chooseBusiness') }}</NuxtLink>
+    </p>
     <template v-else>
       <div class="card">
-        <div class="card-title">Add product</div>
+        <div class="card-title">{{ t('products.add') }}</div>
         <form class="form-row" @submit.prevent="create">
-          <label style="margin:0">Name
-            <input v-model="form.name" required placeholder="Product name" />
+          <label style="margin:0">{{ t('products.name') }}
+            <input v-model="form.name" required />
           </label>
-          <label style="margin:0">SKU
-            <input v-model="form.sku" required placeholder="SKU-001" />
+          <label style="margin:0">{{ t('products.sku') }}
+            <input v-model="form.sku" required />
           </label>
-          <label style="margin:0">Price (minor units)
+          <label style="margin:0">{{ t('products.price') }}
             <input v-model.number="form.unit_price_amount" type="number" min="0" required />
           </label>
-          <button type="submit" :disabled="pending">{{ pending ? 'Saving…' : 'Add' }}</button>
+          <button type="submit" :disabled="pending">{{ pending ? t('common.loading') : t('common.add') }}</button>
         </form>
-        <p class="hint">Price is stored in minor units (e.g. 10000 IRR).</p>
+        <p class="hint">{{ t('products.priceHint') }}</p>
       </div>
       <p v-if="error" class="err">{{ error }}</p>
       <div v-if="items.length" class="table-wrap">
         <table>
-          <thead><tr><th>Name</th><th>SKU</th><th>Price</th><th>Status</th></tr></thead>
+          <thead>
+            <tr>
+              <th>{{ t('products.name') }}</th>
+              <th>{{ t('products.sku') }}</th>
+              <th>{{ t('products.price') }}</th>
+              <th>{{ t('products.status') }}</th>
+            </tr>
+          </thead>
           <tbody>
             <tr v-for="p in items" :key="p.id">
               <td>{{ p.name }}</td>
@@ -33,14 +43,15 @@
           </tbody>
         </table>
       </div>
-      <div v-else-if="!loading" class="empty">No products yet. Add your first product above.</div>
-      <p v-if="loading" class="hint">Loading…</p>
+      <div v-else-if="!loading" class="empty">{{ t('products.empty') }}</div>
+      <p v-if="loading" class="hint">{{ t('common.loading') }}</p>
     </template>
   </div>
 </template>
 <script setup lang="ts">
 import { useSessionStore } from '~/stores/session'
 definePageMeta({ middleware: 'auth' })
+const { t } = useI18n()
 const api = useApi()
 const session = useSessionStore()
 const toast = useToast()
@@ -57,7 +68,7 @@ async function load() {
     const res = await api.get<any>('/products')
     items.value = Array.isArray(res.data) ? res.data : []
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Load failed'
+    error.value = e instanceof Error ? e.message : t('common.error')
     toast.err(error.value)
   } finally {
     loading.value = false
@@ -68,12 +79,12 @@ async function create() {
   error.value = ''
   try {
     await api.post('/products', { ...form }, crypto.randomUUID())
-    toast.ok('Product created')
+    toast.ok(t('products.created'))
     form.name = ''
     form.sku = ''
     await load()
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Create failed'
+    error.value = e instanceof Error ? e.message : t('common.error')
     toast.err(error.value)
   } finally {
     pending.value = false

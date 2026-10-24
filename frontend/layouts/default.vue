@@ -2,96 +2,56 @@
   <div class="layout">
     <header v-if="session.isAuthenticated" class="header">
       <nav class="nav">
-        <NuxtLink to="/">Home</NuxtLink>
-        <NuxtLink to="/products">Products</NuxtLink>
-        <NuxtLink to="/stock">Stock</NuxtLink>
-        <NuxtLink to="/orders">Orders</NuxtLink>
-        <NuxtLink to="/payments">Payments</NuxtLink>
-        <NuxtLink to="/shipments">Shipments</NuxtLink>
-        <NuxtLink to="/members">Members</NuxtLink>
-        <NuxtLink to="/audit">Audit</NuxtLink>
-        <NuxtLink to="/business">Business</NuxtLink>
+        <NuxtLink to="/">{{ t('nav.home') }}</NuxtLink>
+        <NuxtLink to="/business">{{ t('nav.business') }}</NuxtLink>
+        <NuxtLink to="/products">{{ t('nav.products') }}</NuxtLink>
+        <NuxtLink to="/stock">{{ t('nav.stock') }}</NuxtLink>
+        <NuxtLink to="/orders">{{ t('nav.orders') }}</NuxtLink>
+        <NuxtLink to="/payments">{{ t('nav.payments') }}</NuxtLink>
+        <NuxtLink to="/shipments">{{ t('nav.shipments') }}</NuxtLink>
+        <NuxtLink to="/members">{{ t('nav.members') }}</NuxtLink>
+        <NuxtLink to="/audit">{{ t('nav.audit') }}</NuxtLink>
       </nav>
-      <div class="meta">
-        <span v-if="session.businessId" class="biz" :title="session.businessId">
-          {{ session.businessId.slice(0, 8) }}…
-        </span>
-        <button type="button" class="secondary" @click="setLocale(locale === 'en' ? 'fa' : 'en')">{{ locale === 'en' ? 'فا' : 'EN' }}</button>
-        <button type="button" class="secondary" @click="logout">Logout</button>
+      <div class="header-actions">
+        <button type="button" class="secondary" @click="setLocale(locale === 'en' ? 'fa' : 'en')">
+          {{ locale === 'en' ? 'فا' : 'EN' }}
+        </button>
+        <button type="button" class="secondary" @click="logout">{{ t('nav.logout') }}</button>
       </div>
     </header>
-
     <main class="main">
       <slot />
     </main>
-
-    <div class="toast-stack" aria-live="polite">
-      <div
-        v-for="t in toast.toasts.value"
-        :key="t.id"
-        class="toast"
-        :class="t.kind"
-        @click="toast.dismiss(t.id)"
-      >
-        {{ t.message }}
-      </div>
-    </div>
+    <div v-if="toast.message" class="toast" :class="toast.type">{{ toast.message }}</div>
   </div>
 </template>
-
 <script setup lang="ts">
 import { useSessionStore } from '~/stores/session'
-
 const session = useSessionStore()
-const { locale, setLocale } = useI18n()
-const api = useApi()
-const toast = useToast()
-
+const { t, locale, setLocale } = useI18n()
+const { toast } = useToast()
 async function logout() {
   try {
+    const api = useApi()
     await api.post('/auth/logout')
-  } catch {
-    /* ignore */
-  }
+  } catch { /* ignore */ }
   session.clear()
-  toast.hint('Signed out')
   await navigateTo('/login')
 }
 </script>
-
 <style scoped>
-.toast-stack {
-  position: fixed;
-  right: 1rem;
-  bottom: 1rem;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-width: min(22rem, calc(100vw - 2rem));
-}
+.header-actions { display: flex; gap: 0.5rem; align-items: center; }
 .toast {
+  position: fixed;
+  bottom: 1.25rem;
+  inset-inline-end: 1.25rem;
   padding: 0.75rem 1rem;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.12);
-  cursor: pointer;
-  border: 1px solid transparent;
-  background: #fff;
+  border-radius: 8px;
+  background: #101828;
+  color: #fff;
+  z-index: 50;
+  max-width: min(24rem, 90vw);
 }
-.toast.ok {
-  background: var(--success-soft, #ecfdf3);
-  color: var(--success, #027a48);
-  border-color: #a6f4c5;
-}
-.toast.err {
-  background: var(--danger-soft, #fef3f2);
-  color: var(--danger, #b42318);
-  border-color: #fecdca;
-}
-.toast.hint {
-  background: #fff;
-  color: var(--text, #101828);
-  border-color: var(--border, #e4e7ec);
-}
+.toast.ok { background: #027a48; }
+.toast.err { background: #b42318; }
 </style>

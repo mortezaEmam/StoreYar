@@ -1,28 +1,38 @@
 <template>
   <div class="auth-wrap">
     <div class="auth-card">
-      <div class="brand">StoreYar</div>
-      <h1>Welcome back</h1>
-      <p class="sub">Sign in to manage your business.</p>
+      <div class="lang-bar">
+        <button type="button" class="secondary" @click="setLocale(locale === 'en' ? 'fa' : 'en')">
+          {{ locale === 'en' ? t('lang.fa') : t('lang.en') }}
+        </button>
+      </div>
+      <div class="brand">{{ t('app.name') }}</div>
+      <h1>{{ t('auth.login.title') }}</h1>
+      <p class="sub">{{ t('auth.login.sub') }}</p>
       <form @submit.prevent="onSubmit">
-        <label>Email
+        <label>{{ t('auth.email') }}
           <input v-model="email" type="email" required autocomplete="username" placeholder="you@example.com" />
         </label>
-        <label>Password
+        <label>{{ t('auth.password') }}
           <input v-model="password" type="password" required autocomplete="current-password" placeholder="••••••••" />
         </label>
         <button type="submit" :disabled="pending">
-          {{ pending ? 'Signing in…' : 'Sign in' }}
+          {{ pending ? t('auth.login.pending') : t('auth.login.submit') }}
         </button>
         <p v-if="error" class="err">{{ error }}</p>
       </form>
-      <p class="footer">Forgot password? <NuxtLink to="/forgot-password">Reset</NuxtLink> · No account? <NuxtLink to="/register">Create one</NuxtLink></p>
+      <p class="footer">
+        <NuxtLink to="/forgot-password">{{ t('auth.forgot.link') }}</NuxtLink>
+        · {{ t('auth.noAccount') }}
+        <NuxtLink to="/register">{{ t('auth.createOne') }}</NuxtLink>
+      </p>
     </div>
   </div>
 </template>
 <script setup lang="ts">
 import { useSessionStore } from '~/stores/session'
 definePageMeta({ layout: false })
+const { t, locale, setLocale } = useI18n()
 const email = ref('')
 const password = ref('')
 const error = ref('')
@@ -38,9 +48,13 @@ async function onSubmit() {
     session.setUser(res.data.user)
     await navigateTo('/business')
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Login failed'
+    error.value = e instanceof Error ? e.message : t('auth.login.failed')
   } finally {
     pending.value = false
   }
 }
 </script>
+<style scoped>
+.lang-bar { display: flex; justify-content: flex-end; margin-bottom: 0.5rem; }
+.lang-bar button { font-size: 0.8rem; padding: 0.35rem 0.65rem; }
+</style>

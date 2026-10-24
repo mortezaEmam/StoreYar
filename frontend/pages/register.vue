@@ -1,30 +1,43 @@
 <template>
   <div class="auth-wrap">
     <div class="auth-card">
-      <div class="brand">StoreYar</div>
-      <h1>Create account</h1>
-      <p class="sub">Start selling in a few minutes.</p>
+      <div class="lang-bar">
+        <button type="button" class="secondary" @click="setLocale(locale === 'en' ? 'fa' : 'en')">
+          {{ locale === 'en' ? t('lang.fa') : t('lang.en') }}
+        </button>
+      </div>
+      <div class="brand">{{ t('app.name') }}</div>
+      <h1>{{ t('auth.register.title') }}</h1>
+      <p class="sub">{{ t('auth.register.sub') }}</p>
       <form @submit.prevent="onSubmit">
-        <label>Name <input v-model="name" required placeholder="Your name" /></label>
-        <label>Email <input v-model="email" type="email" required placeholder="you@example.com" /></label>
-        <label>Password <input v-model="password" type="password" required minlength="8" placeholder="At least 8 characters" /></label>
-        <label>Confirm password <input v-model="passwordConfirmation" type="password" required placeholder="Repeat password" /></label>
+        <label>{{ t('auth.name') }}
+          <input v-model="name" required autocomplete="name" />
+        </label>
+        <label>{{ t('auth.email') }}
+          <input v-model="email" type="email" required autocomplete="username" />
+        </label>
+        <label>{{ t('auth.password') }}
+          <input v-model="password" type="password" required minlength="8" autocomplete="new-password" />
+        </label>
         <button type="submit" :disabled="pending">
-          {{ pending ? 'Creating…' : 'Create account' }}
+          {{ pending ? t('auth.register.pending') : t('auth.register.submit') }}
         </button>
         <p v-if="error" class="err">{{ error }}</p>
       </form>
-      <p class="footer">Already registered? <NuxtLink to="/login">Sign in</NuxtLink></p>
+      <p class="footer">
+        {{ t('auth.register.hasAccount') }}
+        <NuxtLink to="/login">{{ t('nav.login') }}</NuxtLink>
+      </p>
     </div>
   </div>
 </template>
 <script setup lang="ts">
 import { useSessionStore } from '~/stores/session'
 definePageMeta({ layout: false })
+const { t, locale, setLocale } = useI18n()
 const name = ref('')
 const email = ref('')
 const password = ref('')
-const passwordConfirmation = ref('')
 const error = ref('')
 const pending = ref(false)
 const api = useApi()
@@ -34,16 +47,21 @@ async function onSubmit() {
   error.value = ''
   try {
     const res = await api.post<any>('/auth/register', {
-      name: name.value, email: email.value,
-      password: password.value, password_confirmation: passwordConfirmation.value,
+      name: name.value,
+      email: email.value,
+      password: password.value,
     })
     session.setToken(res.data.token)
     session.setUser(res.data.user)
     await navigateTo('/business')
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Register failed'
+    error.value = e instanceof Error ? e.message : t('auth.register.failed')
   } finally {
     pending.value = false
   }
 }
 </script>
+<style scoped>
+.lang-bar { display: flex; justify-content: flex-end; margin-bottom: 0.5rem; }
+.lang-bar button { font-size: 0.8rem; padding: 0.35rem 0.65rem; }
+</style>

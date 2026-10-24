@@ -5,7 +5,6 @@ type Locale = 'en' | 'fa'
 type Dict = Record<string, string>
 
 const dictionaries: Record<Locale, Dict> = { en, fa }
-
 const localeState = ref<Locale>('en')
 
 export function useI18n() {

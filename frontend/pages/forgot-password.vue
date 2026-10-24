@@ -3,6 +3,7 @@
     <div class="auth-card">
       <div class="brand">{{ t('app.name') }}</div>
       <h1>{{ t('auth.forgot.title') }}</h1>
+      <p class="sub">{{ t('auth.forgot.sub') }}</p>
       <form @submit.prevent="onSubmit">
         <label>{{ t('auth.email') }}
           <input v-model="email" type="email" required />
