@@ -7,6 +7,15 @@ namespace StoreYar\Modules\Identity\Infrastructure;
 use Illuminate\Support\ServiceProvider;
 use StoreYar\Modules\Identity\Application\Commands\SetPassword\SetPasswordCommand;
 use StoreYar\Modules\Identity\Application\Commands\SetPassword\SetPasswordHandler;
+use StoreYar\Modules\Identity\Application\Commands\RequestPasswordReset\RequestPasswordResetCommand;
+use StoreYar\Modules\Identity\Application\Commands\RequestPasswordReset\RequestPasswordResetHandler;
+use StoreYar\Modules\Identity\Application\Commands\ResetPassword\ResetPasswordCommand;
+use StoreYar\Modules\Identity\Application\Commands\ResetPassword\ResetPasswordHandler;
+use StoreYar\Modules\Identity\Application\Security\PasswordResetNotifier;
+use StoreYar\Modules\Identity\Domain\Contracts\PasswordResetTokenRepository;
+use StoreYar\Modules\Identity\Infrastructure\Persistence\Eloquent\EloquentPasswordResetTokenRepository;
+use StoreYar\Modules\Identity\Infrastructure\Security\LogPasswordResetNotifier;
+
 use StoreYar\Modules\Identity\Domain\Contracts\PasswordHasher;
 use StoreYar\Modules\Identity\Domain\Contracts\UserRepository;
 use StoreYar\Modules\Identity\Infrastructure\Security\LaravelPasswordHasher;
@@ -121,5 +130,26 @@ final class IdentityServiceProvider extends ServiceProvider
             SetPasswordCommand::class,
             SetPasswordHandler::class,
         );
+
+        $this->app->singleton(
+            PasswordResetTokenRepository::class,
+            EloquentPasswordResetTokenRepository::class,
+        );
+
+        $this->app->singleton(
+            PasswordResetNotifier::class,
+            LogPasswordResetNotifier::class,
+        );
+
+        $this->app->make(CommandHandlerRegistry::class)->register(
+            RequestPasswordResetCommand::class,
+            RequestPasswordResetHandler::class,
+        );
+
+        $this->app->make(CommandHandlerRegistry::class)->register(
+            ResetPasswordCommand::class,
+            ResetPasswordHandler::class,
+        );
+
     }
 }

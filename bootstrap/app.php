@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use StoreYar\Shared\Presentation\Http\Middleware\AssignRequestId;
 use Illuminate\Http\Request;
 use StoreYar\Modules\Authorization\Presentation\Http\Middleware\EnsureOrganizationMembership;
 use StoreYar\Modules\Identity\Presentation\Http\Middleware\AuthenticateSession;
@@ -17,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->append(AssignRequestId::class);
         $middleware->alias([
             'auth.session' => AuthenticateSession::class,
             'business.context' => SetBusinessContext::class,

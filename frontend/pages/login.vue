@@ -16,7 +16,7 @@
         </button>
         <p v-if="error" class="err">{{ error }}</p>
       </form>
-      <p class="footer">No account? <NuxtLink to="/register">Create one</NuxtLink></p>
+      <p class="footer">Forgot password? <NuxtLink to="/forgot-password">Reset</NuxtLink> · No account? <NuxtLink to="/register">Create one</NuxtLink></p>
     </div>
   </div>
 </template>

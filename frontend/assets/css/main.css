@@ -211,3 +211,10 @@ tr:hover td { background: #fafbfc; }
     min-width: 100%;
   }
 }
+
+/* Logical spacing helpers for RTL/LTR */
+.ms-1 { margin-inline-start: 0.25rem; }
+.me-1 { margin-inline-end: 0.25rem; }
+.ps-1 { padding-inline-start: 0.25rem; }
+.pe-1 { padding-inline-end: 0.25rem; }
+[dir="rtl"] .nav { flex-direction: row-reverse; }

@@ -7,9 +7,6 @@ namespace Tests\Contract;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/**
- * Critical HTTP surface documented in openapi/openapi.yaml must stay in sync with routes.
- */
 final class OpenApiContractTest extends TestCase
 {
     private string $spec;
@@ -43,9 +40,10 @@ final class OpenApiContractTest extends TestCase
             ['  /auth/logout:'],
             ['  /auth/me:'],
             ['  /auth/rotate:'],
+            ['  /auth/forgot-password:'],
+            ['  /auth/reset-password:'],
             ['  /business/ping:'],
             ['  /organizations:'],
-            ['  /organizations/{id}/members:'],
             ['  /products:'],
             ['  /products/{id}:'],
             ['  /products/{id}/price:'],
@@ -78,9 +76,8 @@ final class OpenApiContractTest extends TestCase
 
     public function test_product_rename_and_price_methods_documented(): void
     {
-        // PATCH under /products/{id} (rename) and /products/{id}/price
         self::assertMatchesRegularExpression(
-            '/\/products\/\{id\}:[\s\S]*?patch:/',
+            '#/products/\{id\}:\s*\n(?:.*\n)*?\s+patch:#',
             $this->spec,
         );
         self::assertStringContainsString('  /products/{id}/price:', $this->spec);

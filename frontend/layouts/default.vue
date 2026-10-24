@@ -16,6 +16,7 @@
         <span v-if="session.businessId" class="biz" :title="session.businessId">
           {{ session.businessId.slice(0, 8) }}…
         </span>
+        <button type="button" class="secondary" @click="setLocale(locale === 'en' ? 'fa' : 'en')">{{ locale === 'en' ? 'فا' : 'EN' }}</button>
         <button type="button" class="secondary" @click="logout">Logout</button>
       </div>
     </header>
@@ -42,6 +43,7 @@
 import { useSessionStore } from '~/stores/session'
 
 const session = useSessionStore()
+const { locale, setLocale } = useI18n()
 const api = useApi()
 const toast = useToast()
 

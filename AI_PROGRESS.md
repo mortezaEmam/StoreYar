@@ -1,28 +1,13 @@
 # AI_PROGRESS
 
-## Phase status
+## Done this sequence
 
-| Phase | Status |
-|-------|--------|
-| Phase 0 — Architecture audit | Done |
-| Phase 0b — Baseline hygiene | Apply locally if not pushed |
-| Phase 1 — Frontend CI build | Apply locally if not pushed |
-| OpenAPI ↔ routes reconciliation | **Done (this change)** |
-| TASK-001 … TASK-014 | Done (git history) |
+1. **Password reset** — `POST /api/auth/forgot-password`, `POST /api/auth/reset-password`, migration `identity_password_reset_tokens`, domain commands, tests
+2. **i18n foundation** — `frontend/locales/{en,fa}.json`, `useI18n`, RTL `dir` on `<html>`, forgot/reset pages
+3. **Request correlation** — `AssignRequestId` middleware, `X-Request-Id` request/response, log context
 
-## Completed recently
+## Next
 
-- Documented `PATCH /products/{id}`, `PATCH /products/{id}/price`, `GET /business/ping` in OpenAPI
-- Expanded `OpenApiContractTest` critical path matrix + PHPUnit 12 `#[DataProvider]`
-
-## Next (priority)
-
-1. **P1** — Ensure Phase 0b hygiene + CI frontend build are on the branch you deploy
-2. **P2** — Password reset / email verification (product decision)
-3. **P2** — i18n fa/en + RTL foundation
-4. **P2** — Request correlation id on API responses/logs
-
-## Rules
-
-- New HTTP route ⇒ same PR updates `openapi/openapi.yaml` + contract test
-- Do not reintroduce root artifact pollution
+- Wire production mailer for PasswordResetNotifier (currently log + local/debug token)
+- Expand UI strings through `t()` across remaining pages
+- OpenAPI product rename/price sync if not already applied

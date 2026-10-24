@@ -6,6 +6,10 @@ namespace StoreYar\Modules\Identity\Presentation\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use StoreYar\Modules\Identity\Application\Commands\RequestPasswordReset\RequestPasswordResetCommand;
+use StoreYar\Modules\Identity\Application\Commands\ResetPassword\ResetPasswordCommand;
+use StoreYar\Modules\Identity\Presentation\Http\Requests\ForgotPasswordRequest;
+use StoreYar\Modules\Identity\Presentation\Http\Requests\ResetPasswordRequest;
 use StoreYar\Modules\Identity\Application\Commands\AuthenticateUser\AuthenticateUserCommand;
 use StoreYar\Modules\Identity\Application\Commands\CreateUser\CreateUserCommand;
 use StoreYar\Modules\Identity\Application\Commands\RevokeSession\RevokeSessionCommand;
@@ -155,4 +159,37 @@ final class AuthController
             ->response()
             ->setStatusCode(200);
     }
+
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    {
+        $this->commands->dispatch(
+            new RequestPasswordResetCommand(
+                email: $request->string('email')->toString(),
+            ),
+        );
+
+        return response()->json([
+            'message' => 'If the account exists, a reset link has been sent.',
+        ], 202);
+    }
+
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
+    {
+        try {
+            $this->commands->dispatch(
+                new ResetPasswordCommand(
+                    email: $request->string('email')->toString(),
+                    token: $request->string('token')->toString(),
+                    password: $request->string('password')->toString(),
+                ),
+            );
+
+            return response()->json([
+                'message' => 'Password has been reset.',
+            ], 200);
+        } catch (InvalidCredentials) {
+            return response()->json(['message' => 'Invalid or expired reset token.'], 422);
+        }
+    }
+
 }
