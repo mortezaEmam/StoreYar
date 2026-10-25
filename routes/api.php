@@ -72,3 +72,15 @@ Route::middleware(['auth.session', 'business.context', 'org.member'])
 Route::middleware(['auth.session', 'business.context', 'org.member'])
     ->prefix('brands')
     ->group(base_path('app/Modules/Catalog/Presentation/routes_brands.php'));
+
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('barcodes')
+    ->group(base_path('app/Modules/Catalog/Presentation/routes_barcodes.php'));
+
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('products')
+    ->group(base_path('app/Modules/Catalog/Presentation/routes_product_master.php'));
+
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('suppliers')
+    ->group(base_path('app/Modules/Catalog/Presentation/routes_suppliers.php'));

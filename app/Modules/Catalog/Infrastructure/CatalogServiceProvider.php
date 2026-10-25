@@ -37,6 +37,14 @@ use StoreYar\Modules\Catalog\Application\Commands\CreateUnit\CreateUnitCommand;
 use StoreYar\Modules\Catalog\Application\Commands\CreateUnit\CreateUnitHandler;
 use StoreYar\Modules\Catalog\Application\Commands\CreateBrand\CreateBrandCommand;
 use StoreYar\Modules\Catalog\Application\Commands\CreateBrand\CreateBrandHandler;
+use StoreYar\Modules\Catalog\Application\Commands\AddProductBarcode\AddProductBarcodeCommand;
+use StoreYar\Modules\Catalog\Application\Commands\AddProductBarcode\AddProductBarcodeHandler;
+use StoreYar\Modules\Catalog\Application\Commands\UpdateProductMaster\UpdateProductMasterCommand;
+use StoreYar\Modules\Catalog\Application\Commands\UpdateProductMaster\UpdateProductMasterHandler;
+use StoreYar\Modules\Catalog\Application\Commands\CreateSupplier\CreateSupplierCommand;
+use StoreYar\Modules\Catalog\Application\Commands\CreateSupplier\CreateSupplierHandler;
+use StoreYar\Modules\Catalog\Application\Queries\LookupByBarcode\LookupByBarcodeQuery;
+use StoreYar\Modules\Catalog\Application\Queries\LookupByBarcode\LookupByBarcodeHandler;
 
 final class CatalogServiceProvider extends ServiceProvider
 {
@@ -53,7 +61,9 @@ final class CatalogServiceProvider extends ServiceProvider
         $registry->register(CreateCustomerCommand::class, CreateCustomerHandler::class);
         $registry->register(CreateUnitCommand::class, CreateUnitHandler::class);
         $registry->register(CreateBrandCommand::class, CreateBrandHandler::class);
-
+        $registry->register(AddProductBarcodeCommand::class, AddProductBarcodeHandler::class);
+        $registry->register(UpdateProductMasterCommand::class, UpdateProductMasterHandler::class);
+        $registry->register(CreateSupplierCommand::class, CreateSupplierHandler::class);
         $registry->register(
             CreateProductCommand::class,
             CreateProductHandler::class,
@@ -80,6 +90,8 @@ final class CatalogServiceProvider extends ServiceProvider
         );
 
         $queryRegistry = $this->app->make(QueryHandlerRegistry::class);
+
+        $queryRegistry->register(LookupByBarcodeQuery::class, LookupByBarcodeHandler::class);
 
         $queryRegistry->register(
             ListProductsByOrganizationQuery::class,
