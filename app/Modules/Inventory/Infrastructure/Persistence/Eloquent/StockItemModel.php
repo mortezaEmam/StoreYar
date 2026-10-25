@@ -17,7 +17,10 @@ final class StockItemModel extends Model
     protected $fillable = [
         'id',
         'organization_id',
+        'warehouse_id',
+        'location_id',
         'product_id',
+        'variant_id',
         'quantity',
         'reserved_quantity',
         'version',

@@ -12,20 +12,33 @@ final class StockMovementModel extends Model
 
     public $incrementing = false;
 
-    public $timestamps = false;
-
     protected $keyType = 'string';
+
+    public $timestamps = false;
 
     protected $fillable = [
         'id',
         'organization_id',
+        'warehouse_id',
+        'location_id',
         'stock_item_id',
         'product_id',
+        'variant_id',
         'movement_type',
+        'document_type',
+        'document_id',
+        'document_line_id',
+        'direction',
         'quantity_delta',
         'reserved_delta',
         'quantity_after',
         'reserved_after',
+        'unit_id',
+        'base_quantity',
+        'unit_cost_amount',
+        'currency',
+        'reason',
+        'created_by',
         'event_id',
         'occurred_at',
         'created_at',
@@ -38,6 +51,8 @@ final class StockMovementModel extends Model
             'reserved_delta' => 'integer',
             'quantity_after' => 'integer',
             'reserved_after' => 'integer',
+            'base_quantity' => 'decimal:4',
+            'unit_cost_amount' => 'integer',
             'occurred_at' => 'datetime',
             'created_at' => 'datetime',
         ];
