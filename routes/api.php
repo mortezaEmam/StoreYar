@@ -54,3 +54,21 @@ Route::middleware(['auth.session', 'business.context', 'org.member'])
 
 Route::middleware(['auth.session', 'business.context', 'org.member:owner,admin'])
     ->get('/audit-log', [\StoreYar\Shared\Presentation\Http\Controllers\AuditLogController::class, 'index']);
+
+
+
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('warehouses')
+    ->group(base_path('app/Modules/Inventory/Presentation/routes_warehouses.php'));
+
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('customers')
+    ->group(base_path('app/Modules/Catalog/Presentation/routes_customers.php'));
+
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('units')
+    ->group(base_path('app/Modules/Catalog/Presentation/routes_units.php'));
+
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('brands')
+    ->group(base_path('app/Modules/Catalog/Presentation/routes_brands.php'));

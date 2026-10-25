@@ -104,6 +104,20 @@ final class SharedServiceProvider extends ServiceProvider
 
         $this->app->singleton(AuditLogger::class, DatabaseAuditLogger::class);
 
+        $this->app->singleton(
+            \StoreYar\Shared\Domain\Contracts\IdGenerator::class,
+            \StoreYar\Shared\Infrastructure\Id\UlidGenerator::class,
+        );
+
+        $this->app->singleton(
+            \StoreYar\Shared\Application\Document\DocumentNumberGenerator::class,
+            function ($app) {
+                return new \StoreYar\Shared\Application\Document\DocumentNumberGenerator(
+                    $app->make(\StoreYar\Shared\Domain\Contracts\IdGenerator::class),
+                );
+            },
+        );
+
 
         $this->app->afterResolving(
             InMemoryQueryHandlerRegistry::class,

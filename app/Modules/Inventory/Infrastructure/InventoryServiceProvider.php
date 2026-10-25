@@ -23,6 +23,10 @@ use StoreYar\Modules\Inventory\Infrastructure\Catalog\CatalogProductExistenceChe
 use StoreYar\Modules\Inventory\Infrastructure\Persistence\Eloquent\EloquentStockItemRepository;
 use StoreYar\Shared\Application\Bus\Command\CommandHandlerRegistry;
 use StoreYar\Shared\Application\Bus\Query\QueryHandlerRegistry;
+use StoreYar\Modules\Inventory\Application\Commands\CreateWarehouse\CreateWarehouseCommand;
+use StoreYar\Modules\Inventory\Application\Commands\CreateWarehouse\CreateWarehouseHandler;
+use StoreYar\Modules\Inventory\Application\Queries\ListWarehouses\ListWarehousesQuery;
+use StoreYar\Modules\Inventory\Application\Queries\ListWarehouses\ListWarehousesHandler;
 
 final class InventoryServiceProvider extends ServiceProvider
 {
@@ -42,8 +46,12 @@ final class InventoryServiceProvider extends ServiceProvider
 
         $commands->register(InitializeStockCommand::class, InitializeStockHandler::class);
         $commands->register(AdjustStockCommand::class, AdjustStockHandler::class);
+        $commands->register(CreateWarehouseCommand::class, CreateWarehouseHandler::class);
+
 
         $queries = $this->app->make(QueryHandlerRegistry::class);
+
+        $queries->register(ListWarehousesQuery::class, ListWarehousesHandler::class);
 
         $queries->register(
             ListStockByOrganizationQuery::class,

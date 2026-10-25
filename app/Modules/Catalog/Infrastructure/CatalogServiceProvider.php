@@ -31,6 +31,12 @@ use StoreYar\Modules\Catalog\Infrastructure\Persistence\Eloquent\EloquentCategor
 use StoreYar\Modules\Catalog\Infrastructure\Persistence\Eloquent\EloquentProductRepository;
 use StoreYar\Shared\Application\Bus\Command\CommandHandlerRegistry;
 use StoreYar\Shared\Application\Bus\Query\QueryHandlerRegistry;
+use StoreYar\Modules\Catalog\Application\Commands\CreateCustomer\CreateCustomerCommand;
+use StoreYar\Modules\Catalog\Application\Commands\CreateCustomer\CreateCustomerHandler;
+use StoreYar\Modules\Catalog\Application\Commands\CreateUnit\CreateUnitCommand;
+use StoreYar\Modules\Catalog\Application\Commands\CreateUnit\CreateUnitHandler;
+use StoreYar\Modules\Catalog\Application\Commands\CreateBrand\CreateBrandCommand;
+use StoreYar\Modules\Catalog\Application\Commands\CreateBrand\CreateBrandHandler;
 
 final class CatalogServiceProvider extends ServiceProvider
 {
@@ -42,6 +48,11 @@ final class CatalogServiceProvider extends ServiceProvider
         );
 
         $registry = $this->app->make(CommandHandlerRegistry::class);
+
+
+        $registry->register(CreateCustomerCommand::class, CreateCustomerHandler::class);
+        $registry->register(CreateUnitCommand::class, CreateUnitHandler::class);
+        $registry->register(CreateBrandCommand::class, CreateBrandHandler::class);
 
         $registry->register(
             CreateProductCommand::class,
