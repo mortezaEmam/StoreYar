@@ -27,6 +27,10 @@ use StoreYar\Modules\Inventory\Application\Commands\CreateWarehouse\CreateWareho
 use StoreYar\Modules\Inventory\Application\Commands\CreateWarehouse\CreateWarehouseHandler;
 use StoreYar\Modules\Inventory\Application\Queries\ListWarehouses\ListWarehousesQuery;
 use StoreYar\Modules\Inventory\Application\Queries\ListWarehouses\ListWarehousesHandler;
+use StoreYar\Modules\Inventory\Application\Commands\ReceiveStock\ReceiveStockCommand;
+use StoreYar\Modules\Inventory\Application\Commands\ReceiveStock\ReceiveStockHandler;
+use StoreYar\Modules\Inventory\Application\Queries\ListStockMovements\ListStockMovementsQuery;
+use StoreYar\Modules\Inventory\Application\Queries\ListStockMovements\ListStockMovementsHandler;
 
 final class InventoryServiceProvider extends ServiceProvider
 {
@@ -47,9 +51,11 @@ final class InventoryServiceProvider extends ServiceProvider
         $commands->register(InitializeStockCommand::class, InitializeStockHandler::class);
         $commands->register(AdjustStockCommand::class, AdjustStockHandler::class);
         $commands->register(CreateWarehouseCommand::class, CreateWarehouseHandler::class);
-
+        $commands->register(ReceiveStockCommand::class, ReceiveStockHandler::class);
 
         $queries = $this->app->make(QueryHandlerRegistry::class);
+
+        $queries->register(ListStockMovementsQuery::class, ListStockMovementsHandler::class);
 
         $queries->register(ListWarehousesQuery::class, ListWarehousesHandler::class);
 
