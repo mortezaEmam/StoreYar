@@ -31,6 +31,8 @@ use StoreYar\Modules\Inventory\Application\Commands\ReceiveStock\ReceiveStockCom
 use StoreYar\Modules\Inventory\Application\Commands\ReceiveStock\ReceiveStockHandler;
 use StoreYar\Modules\Inventory\Application\Queries\ListStockMovements\ListStockMovementsQuery;
 use StoreYar\Modules\Inventory\Application\Queries\ListStockMovements\ListStockMovementsHandler;
+use StoreYar\Modules\Inventory\Application\Commands\IssueStock\IssueStockCommand;
+use StoreYar\Modules\Inventory\Application\Commands\IssueStock\IssueStockHandler;
 
 final class InventoryServiceProvider extends ServiceProvider
 {
@@ -47,6 +49,8 @@ final class InventoryServiceProvider extends ServiceProvider
         );
 
         $commands = $this->app->make(CommandHandlerRegistry::class);
+
+        $commands->register(IssueStockCommand::class, IssueStockHandler::class);
 
         $commands->register(InitializeStockCommand::class, InitializeStockHandler::class);
         $commands->register(AdjustStockCommand::class, AdjustStockHandler::class);

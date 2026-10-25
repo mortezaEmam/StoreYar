@@ -28,6 +28,12 @@ use StoreYar\Modules\Sales\Infrastructure\Inventory\InventoryStockReservationSer
 use StoreYar\Modules\Sales\Infrastructure\Persistence\Eloquent\EloquentOrderRepository;
 use StoreYar\Shared\Application\Bus\Command\CommandHandlerRegistry;
 use StoreYar\Shared\Application\Bus\Query\QueryHandlerRegistry;
+use StoreYar\Modules\Sales\Application\Commands\OpenPosSession\OpenPosSessionCommand;
+use StoreYar\Modules\Sales\Application\Commands\OpenPosSession\OpenPosSessionHandler;
+use StoreYar\Modules\Sales\Application\Commands\ClosePosSession\ClosePosSessionCommand;
+use StoreYar\Modules\Sales\Application\Commands\ClosePosSession\ClosePosSessionHandler;
+use StoreYar\Modules\Sales\Application\Commands\PosQuickSale\PosQuickSaleCommand;
+use StoreYar\Modules\Sales\Application\Commands\PosQuickSale\PosQuickSaleHandler;
 
 final class SalesServiceProvider extends ServiceProvider
 {
@@ -50,6 +56,10 @@ final class SalesServiceProvider extends ServiceProvider
         $commands->register(AddOrderLineCommand::class, AddOrderLineHandler::class);
         $commands->register(ConfirmOrderCommand::class, ConfirmOrderHandler::class);
         $commands->register(CancelOrderCommand::class, CancelOrderHandler::class);
+
+        $commands->register(OpenPosSessionCommand::class, OpenPosSessionHandler::class);
+        $commands->register(ClosePosSessionCommand::class, ClosePosSessionHandler::class);
+        $commands->register(PosQuickSaleCommand::class, PosQuickSaleHandler::class);
 
         $queries = $this->app->make(QueryHandlerRegistry::class);
 
