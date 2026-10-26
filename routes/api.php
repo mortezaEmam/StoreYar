@@ -90,7 +90,7 @@ Route::middleware(['auth.session', 'business.context', 'org.member'])
     ->group(base_path('app/Modules/Inventory/Presentation/routes_stock_ops.php'));
 
 
-Route::middleware(['auth.session', 'business.context', 'org.member'])
+Route::middleware(['auth.session', 'business.context', 'org.member', 'permission:pos.sale'])
     ->prefix('pos')
     ->group(base_path('app/Modules/Sales/Presentation/routes_pos.php'));
 
@@ -105,6 +105,11 @@ Route::middleware(['auth.session', 'business.context', 'org.member'])
     ->group(base_path('app/Modules/Accounting/Presentation/routes.php'));
 
 
-Route::middleware(['auth.session', 'business.context', 'org.member'])
+Route::middleware(['auth.session', 'business.context', 'org.member', 'permission:reports.view'])
     ->prefix('reports')
     ->group(base_path('app/Modules/Reporting/Presentation/routes.php'));
+
+
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('permissions')
+    ->group(base_path('app/Modules/Authorization/Presentation/routes_permissions.php'));

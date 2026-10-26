@@ -9,6 +9,9 @@ enum Role: string
     case OWNER = 'owner';
     case ADMIN = 'admin';
     case MEMBER = 'member';
+    case CASHIER = 'cashier';
+    case WAREHOUSE = 'warehouse';
+    case ACCOUNTANT = 'accountant';
 
     public function isOwner(): bool
     {
@@ -23,5 +26,11 @@ enum Role: string
     public function canManageOrganization(): bool
     {
         return $this === self::OWNER;
+    }
+
+    /** Owner and Admin bypass granular permission checks. */
+    public function isPrivileged(): bool
+    {
+        return $this === self::OWNER || $this === self::ADMIN;
     }
 }

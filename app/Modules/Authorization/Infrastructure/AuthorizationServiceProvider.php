@@ -23,6 +23,11 @@ final class AuthorizationServiceProvider extends ServiceProvider
             EloquentMembershipRepository::class,
         );
 
+
+        $this->app->singleton(
+            \StoreYar\Modules\Authorization\Domain\Services\PermissionChecker::class,
+        );
+
         $this->app->make(CommandHandlerRegistry::class)->register(
             GrantMembershipCommand::class,
             GrantMembershipHandler::class,

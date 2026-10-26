@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use StoreYar\Modules\Authorization\Presentation\Http\Middleware\EnsurePermission;
 use StoreYar\Shared\Presentation\Http\Middleware\AssignRequestId;
 use Illuminate\Http\Request;
 use StoreYar\Modules\Authorization\Presentation\Http\Middleware\EnsureOrganizationMembership;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth.session' => AuthenticateSession::class,
             'business.context' => SetBusinessContext::class,
             'org.member' => EnsureOrganizationMembership::class,
+            'permission' => EnsurePermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -34,5 +36,6 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withCommands([
         PublishOutboxCommand::class,
         \App\Console\Commands\SeedDefaultChartOfAccountsCommand::class,
+        \App\Console\Commands\SeedPermissionsCommand::class,
     ])
     ->create();
