@@ -113,3 +113,10 @@ Route::middleware(['auth.session', 'business.context', 'org.member', 'permission
 Route::middleware(['auth.session', 'business.context', 'org.member'])
     ->prefix('permissions')
     ->group(base_path('app/Modules/Authorization/Presentation/routes_permissions.php'));
+
+
+Route::get('/health', [\StoreYar\Modules\Sync\Presentation\Http\Controllers\HealthController::class, '__invoke']);
+
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('sync')
+    ->group(base_path('app/Modules/Sync/Presentation/routes.php'));

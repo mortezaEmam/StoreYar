@@ -27,4 +27,5 @@ return [
     StoreYar\Modules\Purchasing\Infrastructure\PurchasingServiceProvider::class,
     StoreYar\Modules\Accounting\Infrastructure\AccountingServiceProvider::class,
     StoreYar\Modules\Reporting\Infrastructure\ReportingServiceProvider::class,
+    StoreYar\Modules\Sync\Infrastructure\SyncServiceProvider::class,
 ];
