@@ -22,6 +22,10 @@ use StoreYar\Modules\Payments\Infrastructure\Persistence\Eloquent\EloquentPaymen
 use StoreYar\Modules\Payments\Infrastructure\Sales\SalesPayableOrderGateway;
 use StoreYar\Shared\Application\Bus\Command\CommandHandlerRegistry;
 use StoreYar\Shared\Application\Bus\Query\QueryHandlerRegistry;
+use StoreYar\Modules\Payments\Application\Commands\RecordCustomerPayment\RecordCustomerPaymentCommand;
+use StoreYar\Modules\Payments\Application\Commands\RecordCustomerPayment\RecordCustomerPaymentHandler;
+use StoreYar\Modules\Payments\Application\Commands\RecordSupplierPayment\RecordSupplierPaymentCommand;
+use StoreYar\Modules\Payments\Application\Commands\RecordSupplierPayment\RecordSupplierPaymentHandler;
 
 final class PaymentsServiceProvider extends ServiceProvider
 {
@@ -43,6 +47,9 @@ final class PaymentsServiceProvider extends ServiceProvider
          * Register command handlers immediately.
          */
         $commands = $this->app->make(CommandHandlerRegistry::class);
+
+        $commands->register(RecordCustomerPaymentCommand::class, RecordCustomerPaymentHandler::class);
+        $commands->register(RecordSupplierPaymentCommand::class, RecordSupplierPaymentHandler::class);
 
         $commands->register(
             InitiatePaymentCommand::class,
