@@ -16,12 +16,14 @@ use StoreYar\Shared\Application\Bus\Command\CommandHandler;
 use StoreYar\Shared\Application\Document\DocumentNumberGenerator;
 use StoreYar\Shared\Infrastructure\Id\UlidGenerator;
 use Symfony\Component\Uid\Ulid;
+use StoreYar\Modules\Accounting\Application\Services\OperationalPostingService;
 
 final class ReceiveAgainstPOHandler implements CommandHandler
 {
     public function __construct(
         private CommandBus $commands,
         private ?DocumentNumberGenerator $numbers = null,
+        private ?OperationalPostingService $accounting = null,
     ) {}
 
     public function handle(Command $command): array
@@ -75,7 +77,7 @@ final class ReceiveAgainstPOHandler implements CommandHandler
             $grn->save();
 
             $lineResults = [];
-
+            $totalCost = 0;
             foreach ($command->lines as $lineIn) {
                 $lineId = $lineIn['purchase_order_line_id'] ?? null;
                 $qty = (int) ($lineIn['quantity'] ?? 0);
@@ -119,6 +121,8 @@ final class ReceiveAgainstPOHandler implements CommandHandler
                 $poLine->quantity_received = (int) $poLine->quantity_received + $qty;
                 $poLine->save();
 
+                $totalCost += (int) $poLine->unit_cost_amount * $qty;
+
                 $grnLine = new GoodsReceiptLineModel();
                 $grnLine->id = (string) new Ulid();
                 $grnLine->goods_receipt_id = $grn->id;
@@ -153,6 +157,19 @@ final class ReceiveAgainstPOHandler implements CommandHandler
             $po->status = $allReceived ? 'RECEIVED' : ($anyReceived ? 'PARTIAL' : $po->status);
             $po->version = (int) $po->version + 1;
             $po->save();
+
+
+            try {
+                $accounting = $this->accounting ?? app(OperationalPostingService::class);
+                $accounting->postGoodsReceipt(
+                    organizationId: $command->organizationId,
+                    goodsReceiptId: $grn->id,
+                    totalCostAmount: $totalCost,
+                );
+            } catch (\Throwable $e) {
+                report($e);
+            }
+
 
             return [
                 'goods_receipt' => $grn->load('lines'),

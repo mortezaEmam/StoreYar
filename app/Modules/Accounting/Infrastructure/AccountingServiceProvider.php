@@ -17,6 +17,14 @@ final class AccountingServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(
+            \StoreYar\Modules\Accounting\Application\Services\AccountLookup::class,
+        );
+        $this->app->singleton(
+            \StoreYar\Modules\Accounting\Application\Services\OperationalPostingService::class,
+        );
+
+
         $commands = $this->app->make(CommandHandlerRegistry::class);
         $commands->register(CreateAccountCommand::class, CreateAccountHandler::class);
         $commands->register(CreateJournalEntryCommand::class, CreateJournalEntryHandler::class);

@@ -17,12 +17,13 @@ use StoreYar\Shared\Application\Bus\Command\CommandHandler;
 use StoreYar\Shared\Application\Document\DocumentNumberGenerator;
 use StoreYar\Shared\Infrastructure\Id\UlidGenerator;
 use Symfony\Component\Uid\Ulid;
-
+use StoreYar\Modules\Accounting\Application\Services\OperationalPostingService;
 final class PosQuickSaleHandler implements CommandHandler
 {
     public function __construct(
         private CommandBus $commands,
         private ?DocumentNumberGenerator $numbers = null,
+        private ?OperationalPostingService $accounting = null,
     ) {}
 
     public function handle(Command $command): array
@@ -171,6 +172,19 @@ final class PosQuickSaleHandler implements CommandHandler
                     'stock_movement_id' => $issue['movement']->id,
                     'quantity_after' => $issue['quantity_after'],
                 ]);
+            }
+
+
+            try {
+                $accounting = $this->accounting ?? app(OperationalPostingService::class);
+                $accounting->postPosSale(
+                    organizationId: $command->organizationId,
+                    posSaleId: $saleId,
+                    totalAmount: $total,
+                    paymentMethod: strtoupper($command->paymentMethod),
+                );
+            } catch (\Throwable $e) {
+                report($e);
             }
 
             return [
