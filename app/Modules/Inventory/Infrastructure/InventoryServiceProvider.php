@@ -39,6 +39,8 @@ use StoreYar\Modules\Inventory\Application\Commands\CreateStockCount\CreateStock
 use StoreYar\Modules\Inventory\Application\Commands\CreateStockCount\CreateStockCountHandler;
 use StoreYar\Modules\Inventory\Application\Commands\PostStockCount\PostStockCountCommand;
 use StoreYar\Modules\Inventory\Application\Commands\PostStockCount\PostStockCountHandler;
+use StoreYar\Modules\Inventory\Application\Commands\OpeningStock\OpeningStockCommand;
+use StoreYar\Modules\Inventory\Application\Commands\OpeningStock\OpeningStockHandler;
 
 final class InventoryServiceProvider extends ServiceProvider
 {
@@ -56,6 +58,7 @@ final class InventoryServiceProvider extends ServiceProvider
 
         $commands = $this->app->make(CommandHandlerRegistry::class);
 
+        $commands->register(OpeningStockCommand::class, OpeningStockHandler::class);
 
         $commands->register(CreateStockCountCommand::class, CreateStockCountHandler::class);
         $commands->register(PostStockCountCommand::class, PostStockCountHandler::class);

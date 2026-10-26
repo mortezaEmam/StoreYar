@@ -138,3 +138,11 @@ Route::middleware(['auth.session', 'business.context', 'org.member'])
 Route::middleware(['auth.session', 'business.context', 'org.member'])
     ->prefix('stock-counts')
     ->group(base_path('app/Modules/Inventory/Presentation/routes_stock_counts.php'));
+
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('opening-stock')
+    ->group(base_path('app/Modules/Inventory/Presentation/routes_opening_stock.php'));
+
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('opening-balances')
+    ->group(base_path('app/Modules/Accounting/Presentation/routes_opening_balances.php'));

@@ -12,6 +12,8 @@ use StoreYar\Modules\Accounting\Application\Commands\CreateJournalEntry\CreateJo
 use StoreYar\Modules\Accounting\Application\Commands\PostJournalEntry\PostJournalEntryCommand;
 use StoreYar\Modules\Accounting\Application\Commands\PostJournalEntry\PostJournalEntryHandler;
 use StoreYar\Shared\Application\Bus\Command\CommandHandlerRegistry;
+use StoreYar\Modules\Accounting\Application\Commands\OpeningBalance\OpeningBalanceCommand;
+use StoreYar\Modules\Accounting\Application\Commands\OpeningBalance\OpeningBalanceHandler;
 
 final class AccountingServiceProvider extends ServiceProvider
 {
@@ -26,6 +28,7 @@ final class AccountingServiceProvider extends ServiceProvider
 
 
         $commands = $this->app->make(CommandHandlerRegistry::class);
+        $commands->register(OpeningBalanceCommand::class, OpeningBalanceHandler::class);
         $commands->register(CreateAccountCommand::class, CreateAccountHandler::class);
         $commands->register(CreateJournalEntryCommand::class, CreateJournalEntryHandler::class);
         $commands->register(PostJournalEntryCommand::class, PostJournalEntryHandler::class);
