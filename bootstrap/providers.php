@@ -24,4 +24,5 @@ return [
     SalesServiceProvider::class,
     PaymentsServiceProvider::class,
     ShippingServiceProvider::class,
+    StoreYar\Modules\Purchasing\Infrastructure\PurchasingServiceProvider::class,
 ];
