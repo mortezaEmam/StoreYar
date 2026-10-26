@@ -150,3 +150,7 @@ Route::middleware(['auth.session', 'business.context', 'org.member'])
 Route::middleware(['auth.session', 'business.context', 'org.member'])
     ->prefix('purchase-returns')
     ->group(base_path('app/Modules/Purchasing/Presentation/routes_purchase_returns.php'));
+
+Route::middleware(['auth.session', 'business.context', 'org.member', 'permission:reports.view'])
+    ->prefix('export')
+    ->group(base_path('app/Modules/Reporting/Presentation/routes_export.php'));
