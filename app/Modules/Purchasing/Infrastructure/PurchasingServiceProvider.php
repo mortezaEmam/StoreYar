@@ -10,12 +10,16 @@ use StoreYar\Modules\Purchasing\Application\Commands\CreatePurchaseOrder\CreateP
 use StoreYar\Modules\Purchasing\Application\Commands\ReceiveAgainstPO\ReceiveAgainstPOCommand;
 use StoreYar\Modules\Purchasing\Application\Commands\ReceiveAgainstPO\ReceiveAgainstPOHandler;
 use StoreYar\Shared\Application\Bus\Command\CommandHandlerRegistry;
+use StoreYar\Modules\Purchasing\Application\Commands\ReturnPurchase\ReturnPurchaseCommand;
+use StoreYar\Modules\Purchasing\Application\Commands\ReturnPurchase\ReturnPurchaseHandler;
 
 final class PurchasingServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
         $commands = $this->app->make(CommandHandlerRegistry::class);
+
+        $commands->register(ReturnPurchaseCommand::class, ReturnPurchaseHandler::class);
         $commands->register(CreatePurchaseOrderCommand::class, CreatePurchaseOrderHandler::class);
         $commands->register(ReceiveAgainstPOCommand::class, ReceiveAgainstPOHandler::class);
     }

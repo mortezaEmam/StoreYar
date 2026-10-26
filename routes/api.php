@@ -146,3 +146,7 @@ Route::middleware(['auth.session', 'business.context', 'org.member'])
 Route::middleware(['auth.session', 'business.context', 'org.member'])
     ->prefix('opening-balances')
     ->group(base_path('app/Modules/Accounting/Presentation/routes_opening_balances.php'));
+
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('purchase-returns')
+    ->group(base_path('app/Modules/Purchasing/Presentation/routes_purchase_returns.php'));

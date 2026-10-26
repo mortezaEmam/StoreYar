@@ -18,6 +18,8 @@ use StoreYar\Shared\Application\Document\DocumentNumberGenerator;
 use StoreYar\Shared\Infrastructure\Id\UlidGenerator;
 use Symfony\Component\Uid\Ulid;
 use StoreYar\Modules\Accounting\Application\Services\OperationalPostingService;
+use StoreYar\Modules\Catalog\Infrastructure\Persistence\Eloquent\CustomerModel;
+
 final class PosQuickSaleHandler implements CommandHandler
 {
     public function __construct(
@@ -186,7 +188,20 @@ final class PosQuickSaleHandler implements CommandHandler
             } catch (\Throwable $e) {
                 report($e);
             }
+            if (strtoupper($command->paymentMethod) === 'CREDIT' && ! empty($command->customerId)) {
+                $customer = CustomerModel::query()
+                    ->where('id', $command->customerId)
+                    ->where('organization_id', $command->organizationId)
+                    ->lockForUpdate()
+                    ->first();
 
+                if ($customer === null) {
+                    throw new \DomainException('Customer required for credit sale.');
+                }
+
+                $customer->outstanding_balance_amount = (int) $customer->outstanding_balance_amount + $total;
+                $customer->save();
+            }
             return [
                 'sale' => $sale,
                 'lines' => $lineResults,
