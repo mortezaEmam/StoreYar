@@ -33,5 +33,6 @@ return Application::configure(basePath: dirname(__DIR__))
 
     ->withCommands([
         PublishOutboxCommand::class,
+        \App\Console\Commands\SeedDefaultChartOfAccountsCommand::class,
     ])
     ->create();

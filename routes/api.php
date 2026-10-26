@@ -98,3 +98,8 @@ Route::middleware(['auth.session', 'business.context', 'org.member'])
 Route::middleware(['auth.session', 'business.context', 'org.member'])
     ->prefix('purchase-orders')
     ->group(base_path('app/Modules/Purchasing/Presentation/routes.php'));
+
+
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('accounting')
+    ->group(base_path('app/Modules/Accounting/Presentation/routes.php'));

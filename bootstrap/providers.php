@@ -25,4 +25,5 @@ return [
     PaymentsServiceProvider::class,
     ShippingServiceProvider::class,
     StoreYar\Modules\Purchasing\Infrastructure\PurchasingServiceProvider::class,
+    StoreYar\Modules\Accounting\Infrastructure\AccountingServiceProvider::class,
 ];
