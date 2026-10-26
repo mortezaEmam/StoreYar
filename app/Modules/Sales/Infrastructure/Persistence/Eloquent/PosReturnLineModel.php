@@ -1,0 +1,30 @@
+<?php
+
+declare(strict_types=1);
+
+namespace StoreYar\Modules\Sales\Infrastructure\Persistence\Eloquent;
+
+use Illuminate\Database\Eloquent\Model;
+
+final class PosReturnLineModel extends Model
+{
+    protected $table = 'pos_return_lines';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected $fillable = [
+        'id', 'pos_return_id', 'pos_sale_line_id', 'product_id', 'quantity',
+        'unit_price_amount', 'line_total_amount', 'stock_movement_id',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'quantity' => 'integer',
+            'unit_price_amount' => 'integer',
+            'line_total_amount' => 'integer',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+        ];
+    }
+}

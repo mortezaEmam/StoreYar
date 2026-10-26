@@ -34,6 +34,8 @@ use StoreYar\Modules\Sales\Application\Commands\ClosePosSession\ClosePosSessionC
 use StoreYar\Modules\Sales\Application\Commands\ClosePosSession\ClosePosSessionHandler;
 use StoreYar\Modules\Sales\Application\Commands\PosQuickSale\PosQuickSaleCommand;
 use StoreYar\Modules\Sales\Application\Commands\PosQuickSale\PosQuickSaleHandler;
+use StoreYar\Modules\Sales\Application\Commands\ReturnPosSale\ReturnPosSaleCommand;
+use StoreYar\Modules\Sales\Application\Commands\ReturnPosSale\ReturnPosSaleHandler;
 
 final class SalesServiceProvider extends ServiceProvider
 {
@@ -52,6 +54,7 @@ final class SalesServiceProvider extends ServiceProvider
 
         $commands = $this->app->make(CommandHandlerRegistry::class);
 
+        $commands->register(ReturnPosSaleCommand::class, ReturnPosSaleHandler::class);
         $commands->register(CreateOrderCommand::class, CreateOrderHandler::class);
         $commands->register(AddOrderLineCommand::class, AddOrderLineHandler::class);
         $commands->register(ConfirmOrderCommand::class, ConfirmOrderHandler::class);

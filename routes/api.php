@@ -120,3 +120,12 @@ Route::get('/health', [\StoreYar\Modules\Sync\Presentation\Http\Controllers\Heal
 Route::middleware(['auth.session', 'business.context', 'org.member'])
     ->prefix('sync')
     ->group(base_path('app/Modules/Sync/Presentation/routes.php'));
+
+
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('stock-transfers')
+    ->group(base_path('app/Modules/Inventory/Presentation/routes_transfers.php'));
+
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('pos-returns')
+    ->group(base_path('app/Modules/Sales/Presentation/routes_pos_returns.php'));
