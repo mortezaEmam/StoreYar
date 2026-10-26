@@ -4,9 +4,13 @@
       <nav class="nav">
         <NuxtLink to="/">{{ t('nav.home') }}</NuxtLink>
         <NuxtLink to="/business">{{ t('nav.business') }}</NuxtLink>
-        <NuxtLink to="/categories">{{ t('nav.categories') }}</NuxtLink>
+        <NuxtLink to="/pos">{{ t('nav.pos') }}</NuxtLink>
         <NuxtLink to="/products">{{ t('nav.products') }}</NuxtLink>
+        <NuxtLink to="/categories">{{ t('nav.categories') }}</NuxtLink>
         <NuxtLink to="/stock">{{ t('nav.stock') }}</NuxtLink>
+        <NuxtLink to="/purchase-orders">{{ t('nav.purchaseOrders') }}</NuxtLink>
+        <NuxtLink to="/customers">{{ t('nav.customers') }}</NuxtLink>
+        <NuxtLink to="/reports">{{ t('nav.reports') }}</NuxtLink>
         <NuxtLink to="/orders">{{ t('nav.orders') }}</NuxtLink>
         <NuxtLink to="/payments">{{ t('nav.payments') }}</NuxtLink>
         <NuxtLink to="/shipments">{{ t('nav.shipments') }}</NuxtLink>
