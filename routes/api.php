@@ -133,3 +133,8 @@ Route::middleware(['auth.session', 'business.context', 'org.member'])
 Route::middleware(['auth.session', 'business.context', 'org.member'])
     ->prefix('party-payments')
     ->group(base_path('app/Modules/Payments/Presentation/routes_party_payments.php'));
+
+
+Route::middleware(['auth.session', 'business.context', 'org.member'])
+    ->prefix('stock-counts')
+    ->group(base_path('app/Modules/Inventory/Presentation/routes_stock_counts.php'));

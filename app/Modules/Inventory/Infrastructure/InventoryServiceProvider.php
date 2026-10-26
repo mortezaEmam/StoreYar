@@ -35,6 +35,10 @@ use StoreYar\Modules\Inventory\Application\Commands\IssueStock\IssueStockCommand
 use StoreYar\Modules\Inventory\Application\Commands\IssueStock\IssueStockHandler;
 use StoreYar\Modules\Inventory\Application\Commands\TransferStock\TransferStockCommand;
 use StoreYar\Modules\Inventory\Application\Commands\TransferStock\TransferStockHandler;
+use StoreYar\Modules\Inventory\Application\Commands\CreateStockCount\CreateStockCountCommand;
+use StoreYar\Modules\Inventory\Application\Commands\CreateStockCount\CreateStockCountHandler;
+use StoreYar\Modules\Inventory\Application\Commands\PostStockCount\PostStockCountCommand;
+use StoreYar\Modules\Inventory\Application\Commands\PostStockCount\PostStockCountHandler;
 
 final class InventoryServiceProvider extends ServiceProvider
 {
@@ -52,6 +56,9 @@ final class InventoryServiceProvider extends ServiceProvider
 
         $commands = $this->app->make(CommandHandlerRegistry::class);
 
+
+        $commands->register(CreateStockCountCommand::class, CreateStockCountHandler::class);
+        $commands->register(PostStockCountCommand::class, PostStockCountHandler::class);
 
         $commands->register(TransferStockCommand::class, TransferStockHandler::class);
 
