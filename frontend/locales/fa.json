@@ -464,5 +464,12 @@
   "sync.eventId": "شناسه کلاینت",
   "sync.eventType": "نوع",
   "sync.eventStatus": "وضعیت",
-  "sync.when": "زمان"
+  "sync.when": "زمان",
+  "home.desc.posSales": "تاریخچه فروش صندوق",
+  "home.desc.units": "واحد اندازه‌گیری",
+  "home.desc.brands": "برند کالا",
+  "home.desc.movements": "لجر حرکات انبار",
+  "home.desc.openingBal": "مانده افتتاحیه حساب‌ها",
+  "home.desc.fiscal": "سال مالی",
+  "home.desc.sync": "دستگاه و همگام‌سازی آفلاین"
 }

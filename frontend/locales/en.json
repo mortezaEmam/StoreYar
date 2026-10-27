@@ -464,5 +464,12 @@
   "sync.eventId": "Client event id",
   "sync.eventType": "Type",
   "sync.eventStatus": "Status",
-  "sync.when": "When"
+  "sync.when": "When",
+  "home.desc.posSales": "POS sales history",
+  "home.desc.units": "Units of measure",
+  "home.desc.brands": "Product brands",
+  "home.desc.movements": "Stock movement ledger",
+  "home.desc.openingBal": "Opening account balances",
+  "home.desc.fiscal": "Fiscal years",
+  "home.desc.sync": "Devices and offline sync"
 }

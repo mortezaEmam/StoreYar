@@ -60,22 +60,29 @@ const error = ref('')
 
 const modules = [
   { to: '/pos', titleKey: 'nav.pos', descKey: 'home.desc.pos' },
+  { to: '/pos-sales', titleKey: 'nav.posSales', descKey: 'home.desc.posSales' },
   { to: '/products', titleKey: 'nav.products', descKey: 'home.desc.products' },
   { to: '/barcodes', titleKey: 'nav.barcodes', descKey: 'home.desc.barcodes' },
+  { to: '/units', titleKey: 'nav.units', descKey: 'home.desc.units' },
+  { to: '/brands', titleKey: 'nav.brands', descKey: 'home.desc.brands' },
   { to: '/warehouses', titleKey: 'nav.warehouses', descKey: 'home.desc.warehouses' },
   { to: '/stock', titleKey: 'nav.stock', descKey: 'home.desc.stock' },
+  { to: '/stock-movements', titleKey: 'nav.stockMovements', descKey: 'home.desc.movements' },
   { to: '/opening-stock', titleKey: 'nav.openingStock', descKey: 'home.desc.openingStock' },
   { to: '/stock-transfers', titleKey: 'nav.stockTransfers', descKey: 'home.desc.transfers' },
   { to: '/stock-counts', titleKey: 'nav.stockCounts', descKey: 'home.desc.counts' },
   { to: '/purchase-orders', titleKey: 'nav.purchaseOrders', descKey: 'home.desc.po' },
+  { to: '/purchase-returns', titleKey: 'nav.purchaseReturns', descKey: 'home.desc.purchaseReturns' },
   { to: '/suppliers', titleKey: 'nav.suppliers', descKey: 'home.desc.suppliers' },
   { to: '/customers', titleKey: 'nav.customers', descKey: 'home.desc.customers' },
   { to: '/party-payments', titleKey: 'nav.partyPayments', descKey: 'home.desc.partyPay' },
   { to: '/pos-returns', titleKey: 'nav.posReturns', descKey: 'home.desc.posReturns' },
   { to: '/accounting', titleKey: 'nav.accounting', descKey: 'home.desc.accounting' },
+  { to: '/opening-balances', titleKey: 'nav.openingBalances', descKey: 'home.desc.openingBal' },
+  { to: '/fiscal-years', titleKey: 'nav.fiscalYears', descKey: 'home.desc.fiscal' },
   { to: '/reports', titleKey: 'nav.reports', descKey: 'home.desc.reports' },
-  { to: '/purchase-returns', titleKey: 'nav.purchaseReturns', descKey: 'home.desc.purchaseReturns' },
   { to: '/export', titleKey: 'nav.export', descKey: 'home.desc.export' },
+  { to: '/sync', titleKey: 'nav.sync', descKey: 'home.desc.sync' },
 ]
 
 async function load() {
@@ -84,10 +91,8 @@ async function load() {
   error.value = ''
   try {
     dash.value = api.unwrap(await api.get('/reports/dashboard'))
-  } catch (e: any) {
-    // dashboard optional if reports route missing
+  } catch {
     dash.value = null
-    error.value = ''
   } finally {
     loading.value = false
   }
