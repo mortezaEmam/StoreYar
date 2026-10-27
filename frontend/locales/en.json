@@ -384,5 +384,7 @@
   "purchaseReturn.submit": "Submit",
   "purchaseReturn.ok": "Purchase return recorded",
   "home.desc.purchaseReturns": "Return stock to supplier",
-  "home.desc.export": "Download JSON/CSV"
+  "home.desc.export": "Download JSON/CSV",
+  "pos.pickProduct": "Pick product (no barcode)",
+  "pos.gotoReturn": "Return this sale →"
 }

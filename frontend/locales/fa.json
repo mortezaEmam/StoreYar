@@ -384,5 +384,7 @@
   "purchaseReturn.submit": "ثبت",
   "purchaseReturn.ok": "مرجوعی خرید ثبت شد",
   "home.desc.purchaseReturns": "برگشت کالا به تأمین‌کننده",
-  "home.desc.export": "دانلود JSON/CSV"
+  "home.desc.export": "دانلود JSON/CSV",
+  "pos.pickProduct": "انتخاب کالا (بدون بارکد)",
+  "pos.gotoReturn": "ثبت مرجوعی برای این فروش →"
 }

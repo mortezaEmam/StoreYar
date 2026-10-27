@@ -47,6 +47,17 @@
             <button type="submit" :disabled="pending">{{ t('common.add') }}</button>
           </form>
           <p class="hint">{{ t('pos.scanHint') }}</p>
+          <div class="form-row" style="margin-top:.75rem">
+            <label style="margin:0">{{ t('pos.pickProduct') }}
+              <select v-model="pickProductId">
+                <option disabled value="">{{ t('common.select') }}</option>
+                <option v-for="p in products" :key="p.id" :value="p.id">
+                  {{ p.name }} ({{ p.sku }}) — {{ p.unit_price_amount }}
+                </option>
+              </select>
+            </label>
+            <button type="button" :disabled="pending || !pickProductId" @click="addByProduct">{{ t('common.add') }}</button>
+          </div>
         </div>
       </div>
 
@@ -90,7 +101,10 @@
       </div>
 
       <p v-if="error" class="err">{{ error }}</p>
-      <p v-if="lastSale" class="ok">{{ t('pos.saleOk') }}: {{ lastSale }}</p>
+      <p v-if="lastSale" class="ok">
+        {{ t('pos.saleOk') }}: {{ lastSale }}
+        <NuxtLink v-if="lastSaleId" to="/pos-returns" class="hint">{{ t('pos.gotoReturn') }}</NuxtLink>
+      </p>
     </template>
   </div>
 </template>
@@ -112,12 +126,36 @@ const paymentMethod = ref('CASH')
 const pending = ref(false)
 const error = ref('')
 const lastSale = ref('')
+const lastSaleId = ref('')
+const products = ref<any[]>([])
+const pickProductId = ref('')
 const barcodeInput = ref<HTMLInputElement | null>(null)
 const openForm = reactive({ warehouse_id: '', opening_float_amount: 0 })
 
 const cartTotal = computed(() =>
   cart.value.reduce((s, l) => s + l.quantity * l.unit_price_amount, 0),
 )
+
+async function loadProducts() {
+  try {
+    products.value = api.unwrap(await api.get('/products')) || []
+  } catch { products.value = [] }
+}
+
+function addByProduct() {
+  const p = products.value.find((x: any) => x.id === pickProductId.value)
+  if (!p) return
+  const existing = cart.value.find((l: any) => l.product_id === p.id)
+  if (existing) existing.quantity += qty.value
+  else cart.value.push({
+    product_id: p.id,
+    name: p.name,
+    quantity: qty.value,
+    unit_price_amount: p.unit_price_amount || 0,
+  })
+  pickProductId.value = ''
+  qty.value = 1
+}
 
 async function loadWarehouses() {
   try {
@@ -212,7 +250,8 @@ async function checkout() {
       })),
     })
     const sale = api.unwrap(res)
-    lastSale.value = sale?.document_number || sale?.id || 'OK'
+    lastSale.value = [sale?.document_number, sale?.id].filter(Boolean).join(' · ') || 'OK'
+    lastSaleId.value = sale?.id || ''
     cart.value = []
     toast.push(t('pos.saleOk'), 'ok')
   } catch (e: any) {
@@ -222,10 +261,28 @@ async function checkout() {
   }
 }
 
-onMounted(() => {
-  if (session.businessId) loadWarehouses()
+async function loadCurrentSession() {
+  try {
+    const res = await api.get('/pos/sessions/current')
+    const data = api.unwrap(res)
+    if (data && data.status === 'OPEN') sessionRow.value = data
+  } catch { /* no open session */ }
+}
+
+onMounted(async () => {
+  if (session.businessId) {
+    await loadWarehouses()
+    await loadProducts()
+    await loadCurrentSession()
+  }
 })
-watch(() => session.businessId, (v) => { if (v) loadWarehouses() })
+watch(() => session.businessId, async (v) => {
+  if (v) {
+    await loadWarehouses()
+    await loadProducts()
+    await loadCurrentSession()
+  }
+})
 </script>
 
 <style scoped>
