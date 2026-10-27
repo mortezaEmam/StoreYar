@@ -22,6 +22,8 @@
         <NuxtLink to="/stock-transfers">{{ t('nav.stockTransfers') }}</NuxtLink>
         <NuxtLink to="/stock-counts">{{ t('nav.stockCounts') }}</NuxtLink>
         <NuxtLink to="/pos-returns">{{ t('nav.posReturns') }}</NuxtLink>
+        <NuxtLink to="/purchase-returns">{{ t('nav.purchaseReturns') }}</NuxtLink>
+        <NuxtLink to="/export">{{ t('nav.export') }}</NuxtLink>
         <NuxtLink to="/suppliers">{{ t('nav.suppliers') }}</NuxtLink>
         <NuxtLink to="/party-payments">{{ t('nav.partyPayments') }}</NuxtLink>
         <NuxtLink to="/accounting">{{ t('nav.accounting') }}</NuxtLink>

@@ -74,6 +74,8 @@ const modules = [
   { to: '/pos-returns', titleKey: 'nav.posReturns', descKey: 'home.desc.posReturns' },
   { to: '/accounting', titleKey: 'nav.accounting', descKey: 'home.desc.accounting' },
   { to: '/reports', titleKey: 'nav.reports', descKey: 'home.desc.reports' },
+  { to: '/purchase-returns', titleKey: 'nav.purchaseReturns', descKey: 'home.desc.purchaseReturns' },
+  { to: '/export', titleKey: 'nav.export', descKey: 'home.desc.export' },
 ]
 
 async function load() {
