@@ -5,11 +5,14 @@
         <NuxtLink to="/">{{ t('nav.home') }}</NuxtLink>
         <NuxtLink to="/business">{{ t('nav.business') }}</NuxtLink>
         <NuxtLink to="/pos">{{ t('nav.pos') }}</NuxtLink>
+        <NuxtLink to="/pos-returns">{{ t('nav.posReturns') }}</NuxtLink>
         <NuxtLink to="/products">{{ t('nav.products') }}</NuxtLink>
         <NuxtLink to="/barcodes">{{ t('nav.barcodes') }}</NuxtLink>
         <NuxtLink to="/categories">{{ t('nav.categories') }}</NuxtLink>
         <NuxtLink to="/warehouses">{{ t('nav.warehouses') }}</NuxtLink>
         <NuxtLink to="/stock">{{ t('nav.stock') }}</NuxtLink>
+        <NuxtLink to="/opening-stock">{{ t('nav.openingStock') }}</NuxtLink>
+        <NuxtLink to="/stock-transfers">{{ t('nav.stockTransfers') }}</NuxtLink>
         <NuxtLink to="/stock-counts">{{ t('nav.stockCounts') }}</NuxtLink>
         <NuxtLink to="/purchase-orders">{{ t('nav.purchaseOrders') }}</NuxtLink>
         <NuxtLink to="/suppliers">{{ t('nav.suppliers') }}</NuxtLink>
