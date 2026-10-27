@@ -135,7 +135,7 @@ async function openSession() {
   pending.value = true
   error.value = ''
   try {
-    const res = await api.post('/pos/sessions', {
+    const res = await api.post('/pos/sessions/open', {
       warehouse_id: openForm.warehouse_id,
       opening_float_amount: openForm.opening_float_amount || 0,
     })
@@ -202,7 +202,7 @@ async function checkout() {
   pending.value = true
   error.value = ''
   try {
-    const res = await api.post('/pos/sales', {
+    const res = await api.post('/pos/sale', {
       pos_session_id: sessionRow.value.id,
       payment_method: paymentMethod.value,
       lines: cart.value.map((l) => ({
