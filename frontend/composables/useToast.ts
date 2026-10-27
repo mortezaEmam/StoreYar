@@ -25,6 +25,22 @@ export function useToast() {
     ok: (message: string) => push('ok', message),
     err: (message: string) => push('err', message),
     hint: (message: string) => push('hint', message),
+    /**
+     * Compatibility: toast.push(message, 'ok' | 'err' | 'hint')
+     * Also accepts legacy order: toast.push('ok', message)
+     */
+    push: (a: string, b?: string) => {
+      const kinds: ToastKind[] = ['ok', 'err', 'hint']
+      if (b !== undefined && kinds.includes(b as ToastKind)) {
+        push(b as ToastKind, a)
+        return
+      }
+      if (kinds.includes(a as ToastKind) && typeof b === 'string') {
+        push(a as ToastKind, b)
+        return
+      }
+      push('ok', a)
+    },
     dismiss: (id: number) => {
       toasts.value = toasts.value.filter(t => t.id !== id)
     },
