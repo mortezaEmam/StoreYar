@@ -10,10 +10,7 @@ use Illuminate\Support\Facades\Schema;
 use StoreYar\Shared\Infrastructure\Id\UlidGenerator;
 
 /**
- * Seeds a minimal demo catalog + stock for an organization.
- *
  * php artisan storeyar:seed-demo-retail {organization_id}
- * php artisan storeyar:seed-demo-retail {organization_id} --warehouse=MAIN
  */
 final class SeedDemoRetailCommand extends Command
 {
@@ -36,24 +33,27 @@ final class SeedDemoRetailCommand extends Command
             return self::FAILURE;
         }
 
-        $warehouseId = DB::table('inventory_warehouses')
-            ->where('organization_id', $orgId)
-            ->where('code', $whCode)
-            ->value('id');
+        $warehouseId = null;
+        if (Schema::hasTable('inventory_warehouses')) {
+            $warehouseId = DB::table('inventory_warehouses')
+                ->where('organization_id', $orgId)
+                ->where('code', $whCode)
+                ->value('id');
 
-        if (! $warehouseId && Schema::hasTable('inventory_warehouses')) {
-            $warehouseId = $ids->generate();
-            DB::table('inventory_warehouses')->insert([
-                'id' => $warehouseId,
-                'organization_id' => $orgId,
-                'code' => $whCode,
-                'name' => 'Main Warehouse',
-                'is_default' => true,
-                'is_active' => true,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-            $this->info("Created warehouse {$whCode}: {$warehouseId}");
+            if (! $warehouseId) {
+                $warehouseId = $ids->generate();
+                $wh = [
+                    'id' => $warehouseId,
+                    'organization_id' => $orgId,
+                    'code' => $whCode,
+                    'name' => 'Main Warehouse',
+                    'is_default' => true,
+                    'is_active' => true,
+                ];
+                $this->addTimestamps($wh, 'inventory_warehouses', $now);
+                DB::table('inventory_warehouses')->insert($wh);
+                $this->info("Created warehouse {$whCode}: {$warehouseId}");
+            }
         }
 
         if (! $warehouseId) {
@@ -84,16 +84,17 @@ final class SeedDemoRetailCommand extends Command
                     'status' => 'active',
                     'unit_price_amount' => $d['price'],
                     'currency' => 'IRR',
-                    'created_at' => $now,
-                    'updated_at' => $now,
                 ];
                 if (Schema::hasColumn('catalog_products', 'cost_price_amount')) {
                     $row['cost_price_amount'] = $d['cost'];
                 }
                 if (Schema::hasColumn('catalog_products', 'is_sellable')) {
                     $row['is_sellable'] = true;
+                }
+                if (Schema::hasColumn('catalog_products', 'is_stockable')) {
                     $row['is_stockable'] = true;
                 }
+                $this->addTimestamps($row, 'catalog_products', $now);
                 DB::table('catalog_products')->insert($row);
                 $this->info("Product {$d['sku']}: {$productId}");
             } else {
@@ -111,8 +112,6 @@ final class SeedDemoRetailCommand extends Command
                         'organization_id' => $orgId,
                         'product_id' => $productId,
                         'barcode' => $d['barcode'],
-                        'created_at' => $now,
-                        'updated_at' => $now,
                     ];
                     if (Schema::hasColumn('catalog_product_barcodes', 'type')) {
                         $bc['type'] = 'INTERNAL';
@@ -120,63 +119,100 @@ final class SeedDemoRetailCommand extends Command
                     if (Schema::hasColumn('catalog_product_barcodes', 'is_primary')) {
                         $bc['is_primary'] = true;
                     }
+                    $this->addTimestamps($bc, 'catalog_product_barcodes', $now);
                     DB::table('catalog_product_barcodes')->insert($bc);
                     $this->info("  barcode {$d['barcode']}");
                 }
             }
 
-            if (Schema::hasTable('inventory_stock_items')) {
-                $stock = DB::table('inventory_stock_items')
-                    ->where('organization_id', $orgId)
-                    ->where('warehouse_id', $warehouseId)
-                    ->where('product_id', $productId)
-                    ->first();
+            if (! Schema::hasTable('inventory_stock_items')) {
+                continue;
+            }
 
-                if (! $stock) {
-                    $stockId = $ids->generate();
-                    $stockRow = [
-                        'id' => $stockId,
-                        'organization_id' => $orgId,
-                        'warehouse_id' => $warehouseId,
-                        'product_id' => $productId,
-                        'quantity' => $d['qty'],
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ];
-                    if (Schema::hasColumn('inventory_stock_items', 'reserved_quantity')) {
-                        $stockRow['reserved_quantity'] = 0;
-                    }
-                    if (Schema::hasColumn('inventory_stock_items', 'version')) {
-                        $stockRow['version'] = 1;
-                    }
-                    DB::table('inventory_stock_items')->insert($stockRow);
+            $stock = DB::table('inventory_stock_items')
+                ->where('organization_id', $orgId)
+                ->where('warehouse_id', $warehouseId)
+                ->where('product_id', $productId)
+                ->first();
 
-                    if (Schema::hasTable('inventory_stock_movements')) {
-                        $mov = [
-                            'id' => $ids->generate(),
-                            'organization_id' => $orgId,
-                            'warehouse_id' => $warehouseId,
-                            'product_id' => $productId,
-                            'quantity_delta' => $d['qty'],
-                            'quantity_after' => $d['qty'],
-                            'direction' => 'IN',
-                            'reason' => 'Demo seed',
-                            'created_at' => $now,
-                            'updated_at' => $now,
-                        ];
-                        if (Schema::hasColumn('inventory_stock_movements', 'movement_type')) {
-                            $mov['movement_type'] = 'RECEIVE';
-                        }
-                        if (Schema::hasColumn('inventory_stock_movements', 'document_type')) {
-                            $mov['document_type'] = 'OPENING_STOCK';
-                        }
-                        if (Schema::hasColumn('inventory_stock_movements', 'occurred_at')) {
-                            $mov['occurred_at'] = $now;
-                        }
-                        DB::table('inventory_stock_movements')->insert($mov);
-                    }
-                    $this->info("  stock qty {$d['qty']}");
+            $stockItemId = $stock->id ?? null;
+
+            if (! $stock) {
+                $stockItemId = $ids->generate();
+                $stockRow = [
+                    'id' => $stockItemId,
+                    'organization_id' => $orgId,
+                    'warehouse_id' => $warehouseId,
+                    'product_id' => $productId,
+                    'quantity' => $d['qty'],
+                ];
+                if (Schema::hasColumn('inventory_stock_items', 'reserved_quantity')) {
+                    $stockRow['reserved_quantity'] = 0;
                 }
+                if (Schema::hasColumn('inventory_stock_items', 'version')) {
+                    $stockRow['version'] = 1;
+                }
+                $this->addTimestamps($stockRow, 'inventory_stock_items', $now);
+                DB::table('inventory_stock_items')->insert($stockRow);
+                $this->info("  stock qty {$d['qty']}");
+            } else {
+                $this->line('  stock exists qty=' . ($stock->quantity ?? '?'));
+            }
+
+            // Optional ledger row (skip if already has a demo movement for this product)
+            if (! Schema::hasTable('inventory_stock_movements') || ! $stockItemId) {
+                continue;
+            }
+
+            $hasMov = false;
+            if (Schema::hasColumn('inventory_stock_movements', 'reason')) {
+                $hasMov = DB::table('inventory_stock_movements')
+                    ->where('organization_id', $orgId)
+                    ->where('product_id', $productId)
+                    ->where('warehouse_id', $warehouseId)
+                    ->where('reason', 'Demo seed')
+                    ->exists();
+            }
+
+            if ($hasMov) {
+                continue;
+            }
+
+            $mov = [
+                'id' => $ids->generate(),
+                'organization_id' => $orgId,
+                'warehouse_id' => $warehouseId,
+                'product_id' => $productId,
+                'quantity_delta' => $d['qty'],
+                'quantity_after' => $d['qty'],
+            ];
+
+            if (Schema::hasColumn('inventory_stock_movements', 'stock_item_id')) {
+                $mov['stock_item_id'] = $stockItemId;
+            }
+            if (Schema::hasColumn('inventory_stock_movements', 'direction')) {
+                $mov['direction'] = 'IN';
+            }
+            if (Schema::hasColumn('inventory_stock_movements', 'reason')) {
+                $mov['reason'] = 'Demo seed';
+            }
+            if (Schema::hasColumn('inventory_stock_movements', 'movement_type')) {
+                $mov['movement_type'] = 'RECEIVE';
+            }
+            if (Schema::hasColumn('inventory_stock_movements', 'document_type')) {
+                $mov['document_type'] = 'OPENING_STOCK';
+            }
+            if (Schema::hasColumn('inventory_stock_movements', 'occurred_at')) {
+                $mov['occurred_at'] = $now;
+            }
+
+            $this->addTimestamps($mov, 'inventory_stock_movements', $now);
+
+            try {
+                DB::table('inventory_stock_movements')->insert($mov);
+            } catch (\Throwable $e) {
+                // Stock is already usable; ledger is optional for demo
+                $this->warn('  ledger skip: ' . $e->getMessage());
             }
         }
 
@@ -185,5 +221,18 @@ final class SeedDemoRetailCommand extends Command
         $this->info("Warehouse id: {$warehouseId}");
 
         return self::SUCCESS;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function addTimestamps(array &$row, string $table, $now): void
+    {
+        if (Schema::hasColumn($table, 'created_at')) {
+            $row['created_at'] = $now;
+        }
+        if (Schema::hasColumn($table, 'updated_at')) {
+            $row['updated_at'] = $now;
+        }
     }
 }
