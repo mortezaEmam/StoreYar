@@ -6,13 +6,16 @@
         <NuxtLink to="/business">{{ t('nav.business') }}</NuxtLink>
         <NuxtLink to="/pos">{{ t('nav.pos') }}</NuxtLink>
         <NuxtLink to="/products">{{ t('nav.products') }}</NuxtLink>
+        <NuxtLink to="/barcodes">{{ t('nav.barcodes') }}</NuxtLink>
         <NuxtLink to="/categories">{{ t('nav.categories') }}</NuxtLink>
+        <NuxtLink to="/warehouses">{{ t('nav.warehouses') }}</NuxtLink>
         <NuxtLink to="/stock">{{ t('nav.stock') }}</NuxtLink>
         <NuxtLink to="/stock-counts">{{ t('nav.stockCounts') }}</NuxtLink>
         <NuxtLink to="/purchase-orders">{{ t('nav.purchaseOrders') }}</NuxtLink>
         <NuxtLink to="/suppliers">{{ t('nav.suppliers') }}</NuxtLink>
         <NuxtLink to="/customers">{{ t('nav.customers') }}</NuxtLink>
         <NuxtLink to="/party-payments">{{ t('nav.partyPayments') }}</NuxtLink>
+        <NuxtLink to="/accounting">{{ t('nav.accounting') }}</NuxtLink>
         <NuxtLink to="/reports">{{ t('nav.reports') }}</NuxtLink>
         <NuxtLink to="/orders">{{ t('nav.orders') }}</NuxtLink>
         <NuxtLink to="/payments">{{ t('nav.payments') }}</NuxtLink>
@@ -27,9 +30,7 @@
         <button type="button" class="secondary" @click="logout">{{ t('nav.logout') }}</button>
       </div>
     </header>
-    <main class="main">
-      <slot />
-    </main>
+    <main class="main"><slot /></main>
     <div class="toast-stack">
       <div v-for="item in toasts" :key="item.id" class="toast" :class="item.kind">{{ item.message }}</div>
     </div>
@@ -41,7 +42,7 @@ const session = useSessionStore()
 const { t, locale, setLocale } = useI18n()
 const { toasts } = useToast()
 async function logout() {
-  try { await useApi().post('/auth/logout') } catch { /* ignore */ }
+  try { await useApi().post('/auth/logout') } catch { /* */ }
   session.clear()
   await navigateTo('/login')
 }
