@@ -16,6 +16,8 @@
                 </button>
             </nav>
             <nav v-if="showMore" class="nav nav-secondary">
+                <NuxtLink to="/units">{{ t('nav.units') }}</NuxtLink>
+                <NuxtLink to="/brands">{{ t('nav.brands') }}</NuxtLink>
                 <NuxtLink to="/barcodes">{{ t('nav.barcodes') }}</NuxtLink>
                 <NuxtLink to="/categories">{{ t('nav.categories') }}</NuxtLink>
                 <NuxtLink to="/warehouses">{{ t('nav.warehouses') }}</NuxtLink>

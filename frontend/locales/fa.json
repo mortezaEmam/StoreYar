@@ -396,5 +396,21 @@
   "posSales.status": "وضعیت",
   "posSales.empty": "فروشی ثبت نشده",
   "posSales.detail": "جزئیات",
-  "posSales.return": "مرجوعی"
+  "posSales.return": "مرجوعی",
+  "nav.units": "واحدها",
+  "nav.brands": "برندها",
+  "units.title": "واحدهای اندازه‌گیری",
+  "units.add": "واحد جدید",
+  "units.code": "کد",
+  "units.name": "نام",
+  "units.symbol": "نماد",
+  "units.base": "پایه",
+  "units.created": "واحد ثبت شد",
+  "units.empty": "واحدی نیست",
+  "brands.title": "برندها",
+  "brands.add": "برند جدید",
+  "brands.code": "کد",
+  "brands.name": "نام",
+  "brands.created": "برند ثبت شد",
+  "brands.empty": "برندی نیست"
 }
