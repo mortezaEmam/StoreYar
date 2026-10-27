@@ -1,0 +1,12 @@
+{
+  "nav.posSales": "فروش‌های صندوق",
+  "posSales.title": "تاریخچه فروش POS",
+  "posSales.doc": "شماره",
+  "posSales.when": "زمان",
+  "posSales.total": "مبلغ",
+  "posSales.pay": "پرداخت",
+  "posSales.status": "وضعیت",
+  "posSales.empty": "فروشی ثبت نشده",
+  "posSales.detail": "جزئیات",
+  "posSales.return": "مرجوعی"
+}

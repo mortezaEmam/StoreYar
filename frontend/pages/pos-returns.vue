@@ -72,6 +72,14 @@ async function submit() {
     pending.value = false
   }
 }
+
+const route = useRoute()
+onMounted(() => {
+    const q = route.query.sale_id
+    if (typeof q === 'string' && q) form.pos_sale_id = q
+    load()
+})
+
 onMounted(load)
 watch(() => session.businessId, load)
 </script>

@@ -1,0 +1,21 @@
+{
+  "nav.openingBalances": "Opening balances",
+  "nav.fiscalYears": "Fiscal years",
+  "openingBal.title": "Opening account balances",
+  "openingBal.hint": "At least two lines; total debit must equal credit. Posts a journal.",
+  "openingBal.date": "As of date",
+  "openingBal.notes": "Notes",
+  "openingBal.addLine": "line",
+  "openingBal.balanced": "Balanced",
+  "openingBal.unbalanced": "Unbalanced — cannot submit",
+  "openingBal.submit": "Post opening balances",
+  "openingBal.ok": "Posted",
+  "fiscal.title": "Fiscal years",
+  "fiscal.add": "New fiscal year",
+  "fiscal.name": "Name",
+  "fiscal.start": "Starts",
+  "fiscal.end": "Ends",
+  "fiscal.status": "Status",
+  "fiscal.created": "Fiscal year created",
+  "fiscal.empty": "No fiscal years"
+}

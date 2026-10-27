@@ -1,0 +1,12 @@
+{
+  "nav.posSales": "POS sales",
+  "posSales.title": "POS sales history",
+  "posSales.doc": "Document",
+  "posSales.when": "When",
+  "posSales.total": "Total",
+  "posSales.pay": "Payment",
+  "posSales.status": "Status",
+  "posSales.empty": "No sales yet",
+  "posSales.detail": "Details",
+  "posSales.return": "Return"
+}

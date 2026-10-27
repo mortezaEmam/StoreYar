@@ -1,0 +1,18 @@
+{
+  "nav.units": "Units",
+  "nav.brands": "Brands",
+  "units.title": "Units of measure",
+  "units.add": "New unit",
+  "units.code": "Code",
+  "units.name": "Name",
+  "units.symbol": "Symbol",
+  "units.base": "Base",
+  "units.created": "Unit created",
+  "units.empty": "No units",
+  "brands.title": "Brands",
+  "brands.add": "New brand",
+  "brands.code": "Code",
+  "brands.name": "Name",
+  "brands.created": "Brand created",
+  "brands.empty": "No brands"
+}

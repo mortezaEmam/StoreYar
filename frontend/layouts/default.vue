@@ -2,6 +2,8 @@
     <div class="layout">
         <header v-if="session.isAuthenticated" class="header">
             <nav class="nav nav-primary">
+                <NuxtLink to="/opening-balances">{{ t('nav.openingBalances') }}</NuxtLink>
+                <NuxtLink to="/fiscal-years">{{ t('nav.fiscalYears') }}</NuxtLink>
                 <NuxtLink to="/">{{ t('nav.home') }}</NuxtLink>
                 <NuxtLink to="/pos">{{ t('nav.pos') }}</NuxtLink>
                 <NuxtLink to="/pos-sales">{{ t('nav.posSales') }}</NuxtLink>
