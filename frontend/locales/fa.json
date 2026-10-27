@@ -431,5 +431,17 @@
   "fiscal.end": "پایان",
   "fiscal.status": "وضعیت",
   "fiscal.created": "سال مالی ثبت شد",
-  "fiscal.empty": "سال مالی تعریف نشده"
+  "fiscal.empty": "سال مالی تعریف نشده",
+  "nav.stockMovements": "لجر موجودی",
+  "common.all": "همه",
+  "movements.title": "حرکات انبار (Ledger)",
+  "movements.when": "زمان",
+  "movements.type": "نوع",
+  "movements.dir": "جهت",
+  "movements.delta": "تغییر",
+  "movements.after": "بعد از",
+  "movements.doc": "سند",
+  "movements.reason": "دلیل",
+  "movements.empty": "حرکتی در بازه انتخابی نیست",
+  "movements.hint": "منبع حقیقت موجودی — هر ورود/خروج/فروش/انتقال اینجا ثبت می‌شود"
 }

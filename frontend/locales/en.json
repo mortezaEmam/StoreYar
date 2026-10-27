@@ -431,5 +431,17 @@
   "fiscal.end": "Ends",
   "fiscal.status": "Status",
   "fiscal.created": "Fiscal year created",
-  "fiscal.empty": "No fiscal years"
+  "fiscal.empty": "No fiscal years",
+  "nav.stockMovements": "Stock ledger",
+  "common.all": "All",
+  "movements.title": "Stock movements (Ledger)",
+  "movements.when": "When",
+  "movements.type": "Type",
+  "movements.dir": "Dir",
+  "movements.delta": "Delta",
+  "movements.after": "After",
+  "movements.doc": "Document",
+  "movements.reason": "Reason",
+  "movements.empty": "No movements in this range",
+  "movements.hint": "Source of truth — every receive/issue/sale/transfer is recorded here"
 }

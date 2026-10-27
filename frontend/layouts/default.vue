@@ -13,6 +13,7 @@
                 <NuxtLink to="/customers">{{ t('nav.customers') }}</NuxtLink>
                 <NuxtLink to="/reports">{{ t('nav.reports') }}</NuxtLink>
                 <NuxtLink to="/business">{{ t('nav.business') }}</NuxtLink>
+                <NuxtLink to="/stock-movements">{{ t('nav.stockMovements') }}</NuxtLink>
                 <button type="button" class="nav-more secondary" @click="showMore = !showMore">
                     {{ showMore ? t('nav.less') : t('nav.more') }}
                 </button>
