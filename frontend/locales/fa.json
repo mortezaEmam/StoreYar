@@ -97,7 +97,7 @@
   "orders.noLines": "خطی روی این سفارش نیست.",
   "orders.goPayments": "رفتن به پرداخت‌ها",
   "orders.goShipments": "رفتن به ارسال‌ها",
-  "stock.title": "موجودی",
+  "stock.title": "موجودی انبار",
   "stock.init": "مقداردهی اولیه",
   "stock.adjust": "تعدیل موجودی",
   "stock.quantity": "مقدار",
@@ -105,9 +105,9 @@
   "stock.increase": "افزایش",
   "stock.decrease": "کاهش",
   "stock.amount": "مقدار تغییر",
-  "stock.onHand": "موجود",
+  "stock.onHand": "موجودی",
   "stock.reserved": "رزرو",
-  "stock.empty": "ردیفی نیست. برای یک محصول موجودی را مقداردهی کنید.",
+  "stock.empty": "در این انبار موجودی نیست",
   "stock.initialized": "موجودی مقداردهی شد",
   "stock.adjusted": "موجودی تعدیل شد",
   "stock.selectProduct": "انتخاب محصول",
@@ -479,5 +479,10 @@
   "pos.noProducts": "کالایی نیست",
   "pos.cartEmpty": "سبد خالی است — بارکد بزنید یا کالا انتخاب کنید",
   "pos.mixed": "ترکیبی",
-  "pos.receipt": "رسید آخرین فروش"
+  "pos.receipt": "رسید آخرین فروش",
+  "stock.search": "جستجوی کالا…",
+  "stock.receive": "ورود کالا به انبار",
+  "stock.receiveBtn": "ثبت ورود",
+  "stock.received": "ورود ثبت شد",
+  "stock.qty": "تعداد"
 }

@@ -1,6 +1,6 @@
 <template>
-  <div class="layout">
-    <header v-if="session.isAuthenticated" class="header">
+  <div class="layout" :class="{ 'has-mobile-nav': session.isAuthenticated }">
+    <header v-if="session.isAuthenticated" class="header desktop-header">
       <nav class="nav nav-primary">
         <NuxtLink to="/">{{ t('nav.home') }}</NuxtLink>
         <NuxtLink to="/pos">{{ t('nav.pos') }}</NuxtLink>
@@ -48,6 +48,7 @@
       </div>
     </header>
     <main class="main"><slot /></main>
+    <MobileBottomNav />
     <div class="toast-stack">
       <div v-for="item in toasts" :key="item.id" class="toast" :class="item.kind">{{ item.message }}</div>
     </div>
@@ -90,4 +91,14 @@ async function logout() {
 .toast.ok { background: #027a48; }
 .toast.err { background: #b42318; }
 .toast.hint { background: #344054; }
+
+@media (max-width: 768px) {
+  .desktop-header { display: none; }
+  .has-mobile-nav .main {
+    padding-bottom: 4.5rem;
+  }
+  .toast-stack {
+    bottom: 4.75rem;
+  }
+}
 </style>

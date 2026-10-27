@@ -97,7 +97,7 @@
   "orders.noLines": "No lines on this order.",
   "orders.goPayments": "Go to payments",
   "orders.goShipments": "Go to shipments",
-  "stock.title": "Stock",
+  "stock.title": "Warehouse stock",
   "stock.init": "Initialize stock",
   "stock.adjust": "Adjust stock",
   "stock.quantity": "Quantity",
@@ -107,7 +107,7 @@
   "stock.amount": "Amount",
   "stock.onHand": "On hand",
   "stock.reserved": "Reserved",
-  "stock.empty": "No stock rows. Initialize stock for a product.",
+  "stock.empty": "No stock in this warehouse",
   "stock.initialized": "Stock initialized",
   "stock.adjusted": "Stock adjusted",
   "stock.selectProduct": "Select product",
@@ -479,5 +479,10 @@
   "pos.noProducts": "No products",
   "pos.cartEmpty": "Cart empty — scan or pick a product",
   "pos.mixed": "Mixed",
-  "pos.receipt": "Last sale receipt"
+  "pos.receipt": "Last sale receipt",
+  "stock.search": "Search products…",
+  "stock.receive": "Receive into warehouse",
+  "stock.receiveBtn": "Receive",
+  "stock.received": "Stock received",
+  "stock.qty": "Qty"
 }
