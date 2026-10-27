@@ -8,8 +8,11 @@
         <NuxtLink to="/products">{{ t('nav.products') }}</NuxtLink>
         <NuxtLink to="/categories">{{ t('nav.categories') }}</NuxtLink>
         <NuxtLink to="/stock">{{ t('nav.stock') }}</NuxtLink>
+        <NuxtLink to="/stock-counts">{{ t('nav.stockCounts') }}</NuxtLink>
         <NuxtLink to="/purchase-orders">{{ t('nav.purchaseOrders') }}</NuxtLink>
+        <NuxtLink to="/suppliers">{{ t('nav.suppliers') }}</NuxtLink>
         <NuxtLink to="/customers">{{ t('nav.customers') }}</NuxtLink>
+        <NuxtLink to="/party-payments">{{ t('nav.partyPayments') }}</NuxtLink>
         <NuxtLink to="/reports">{{ t('nav.reports') }}</NuxtLink>
         <NuxtLink to="/orders">{{ t('nav.orders') }}</NuxtLink>
         <NuxtLink to="/payments">{{ t('nav.payments') }}</NuxtLink>
@@ -28,14 +31,7 @@
       <slot />
     </main>
     <div class="toast-stack">
-      <div
-        v-for="item in toasts"
-        :key="item.id"
-        class="toast"
-        :class="item.kind"
-      >
-        {{ item.message }}
-      </div>
+      <div v-for="item in toasts" :key="item.id" class="toast" :class="item.kind">{{ item.message }}</div>
     </div>
   </div>
 </template>
@@ -44,12 +40,8 @@ import { useSessionStore } from '~/stores/session'
 const session = useSessionStore()
 const { t, locale, setLocale } = useI18n()
 const { toasts } = useToast()
-
 async function logout() {
-  try {
-    const api = useApi()
-    await api.post('/auth/logout')
-  } catch { /* ignore */ }
+  try { await useApi().post('/auth/logout') } catch { /* ignore */ }
   session.clear()
   await navigateTo('/login')
 }
@@ -57,21 +49,10 @@ async function logout() {
 <style scoped>
 .header-actions { display: flex; gap: 0.5rem; align-items: center; }
 .toast-stack {
-  position: fixed;
-  bottom: 1.25rem;
-  inset-inline-end: 1.25rem;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-width: min(24rem, 90vw);
+  position: fixed; bottom: 1.25rem; inset-inline-end: 1.25rem; z-index: 50;
+  display: flex; flex-direction: column; gap: 0.5rem; max-width: min(24rem, 90vw);
 }
-.toast {
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  background: #101828;
-  color: #fff;
-}
+.toast { padding: 0.75rem 1rem; border-radius: 8px; background: #101828; color: #fff; }
 .toast.ok { background: #027a48; }
 .toast.err { background: #b42318; }
 .toast.hint { background: #344054; }
