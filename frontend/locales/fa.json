@@ -386,5 +386,15 @@
   "home.desc.purchaseReturns": "برگشت کالا به تأمین‌کننده",
   "home.desc.export": "دانلود JSON/CSV",
   "pos.pickProduct": "انتخاب کالا (بدون بارکد)",
-  "pos.gotoReturn": "ثبت مرجوعی برای این فروش →"
+  "pos.gotoReturn": "ثبت مرجوعی برای این فروش →",
+  "nav.posSales": "فروش‌های صندوق",
+  "posSales.title": "تاریخچه فروش POS",
+  "posSales.doc": "شماره",
+  "posSales.when": "زمان",
+  "posSales.total": "مبلغ",
+  "posSales.pay": "پرداخت",
+  "posSales.status": "وضعیت",
+  "posSales.empty": "فروشی ثبت نشده",
+  "posSales.detail": "جزئیات",
+  "posSales.return": "مرجوعی"
 }
