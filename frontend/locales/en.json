@@ -484,5 +484,10 @@
   "stock.receive": "Receive into warehouse",
   "stock.receiveBtn": "Receive",
   "stock.received": "Stock received",
-  "stock.qty": "Qty"
+  "stock.qty": "Qty",
+  "stock.issue": "Issue from warehouse",
+  "stock.issueBtn": "Issue",
+  "stock.issued": "Stock issued",
+  "stock.reason": "Reason",
+  "stock.reasonPh": "e.g. waste / consumption"
 }

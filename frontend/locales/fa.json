@@ -484,5 +484,10 @@
   "stock.receive": "ورود کالا به انبار",
   "stock.receiveBtn": "ثبت ورود",
   "stock.received": "ورود ثبت شد",
-  "stock.qty": "تعداد"
+  "stock.qty": "تعداد",
+  "stock.issue": "خروج از انبار",
+  "stock.issueBtn": "ثبت خروج",
+  "stock.issued": "خروج ثبت شد",
+  "stock.reason": "دلیل",
+  "stock.reasonPh": "مثلاً ضایعات / مصرف"
 }

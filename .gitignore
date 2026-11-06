@@ -32,3 +32,5 @@ Thumbs.db
 /TASK-*.patch
 /PHASE0*.diff
 /000*-*.patch
+frontend/android/
+frontend/.output/
